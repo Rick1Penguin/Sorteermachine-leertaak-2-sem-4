@@ -1,4 +1,3 @@
-#include <Pixy2.h>
 #include <stdio.h>
 #include <Servo.h>
 //servo's
@@ -10,10 +9,6 @@ Servo stopper_1K;
 Servo stopper_1G;
 Servo stopper_2K;
 Servo stopper_2G;
-Servo DraaiServo;
-Servo klepServo1; // links
-Servo klepServo2; // rechts//pixy
-Pixy2 pixy;//Actuatoren pinnen
 const uint8_t Servo_1 = 22;
 const uint8_t Servo_2 = 23;
 const uint8_t Servo_3 = 24;
@@ -22,29 +17,20 @@ const uint8_t Servo_5 = 26;
 const uint8_t Servo_6 = 27;
 const uint8_t Servo_7 = 28;
 const uint8_t Servo_8 = 29;
-const uint8_t bandMotorPin = 35;
-const uint8_t trechterMotor = 43;
-int rolbandpin = 35;//Sensoren pinnen
 const uint8_t noodstop = 22;
 const uint8_t S1 = 30;
 const uint8_t S2 = 31;
 const uint8_t S3 = 32;
 const uint8_t sensorOut = 33;
 const uint8_t S0 = 44;
-const uint8_t echoPin = 47;
-const uint8_t trigPin = 49;
-const uint8_t echoPin2 = 52;
-const uint8_t trigPin2 = 53;//Globale variabelen
+const int comPinOut = 10; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
+const int comPinIn = A0; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
 int RGB_G[3];
 int RGB_K[3];
 int RGB_Base[3];
-int RGB_BasePixy[3];
 int Stdev_BaseR;
 int Stdev_BaseG;
 int Stdev_BaseB;
-int Stdev_BaseRPixy;
-int Stdev_BaseGPixy;
-int Stdev_BaseBPixy;
 int aluminium[4] = {1 , 0, 0, 2}; //Glas,Metaal,Plastic,Hout
 int doorzichtig[4] = {0, 2, 1, 0}; //Glas,Metaal,Plastic,Hout
 int PVC[4] = {1, 1, 1, 0}; //Glas,Metaal,Plastic,Hout
@@ -52,7 +38,6 @@ int glas = 0;
 int metaal = 0;
 int plastic = 0;
 int hout = 0;
-int RGB_Pixy[3];
 int bakType;
 bool flag;
 bool flag_2;
@@ -64,16 +49,13 @@ uint8_t metaal_aantal;
 uint8_t plastic_aantal;
 uint8_t hout_aantal;
 uint8_t ticker;
-long duration;
-float afstand; void setup() {
+
+void setup() {
   // Inputs
   pinMode(S1, OUTPUT);
   pinMode(S2, OUTPUT);
   pinMode(S3, OUTPUT);
   pinMode(S0, OUTPUT);
-  pinMode(trigPin, OUTPUT); //Outputs
-  pinMode(echoPin2, INPUT);
-  pinMode(echoPin, INPUT);
   pinMode(sensorOut, INPUT);
   pinMode(noodstop, INPUT); //Servo's
   stopper_1G.attach(Servo_1);
@@ -84,15 +66,12 @@ float afstand; void setup() {
   stopper_2K.attach(Servo_6);
   sorteerServoK.attach(Servo_7);
   doseerServoK.attach(Servo_8);
-  DraaiServo.attach(8);
-  klepServo1.attach(51);
-  klepServo2.attach(39);
+  
   //aanzetten motoren //Begin serial comms
   Serial.begin(9600);
   digitalWrite(S0, HIGH);
   digitalWrite(S1, LOW);
-  pixy.init();
-  pixy.changeProg("video");
+  
 } void opzet() { //extra opzet void voor kalibratie functies
   stopper_1G.write(70); //alle servo's dicht
   stopper_2G.write(93);
@@ -249,135 +228,28 @@ int check() {
   }
 }
 int bakjes() {
-  long int Rtot;
-  long int Gtot;
-  long int Btot;
-  uint8_t r, g, b;
-  klepServo1.write(42);
-  klepServo2.write(92);
-  digitalWrite(trechterMotor, HIGH);
-  delay(3000);
-  // servo laten draaien
-  DraaiServo.write(160); //draaiwiel draaien
-  delay(1000);
-  DraaiServo.write(57);
-  delay(1000);
-  DraaiServo.write(52);
-  delay(1000);
-  DraaiServo.write(57);
-  delay(1000);
-  DraaiServo.write(160);
-  //ultrasoon uitlezen // Clears the trigPin condition
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  // Sets the trigPin HIGH (ACTIVE) for 10 microseconds
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-  // Reads the echoPin, returns the sound wave travel time in microseconds
-  duration = pulseIn(echoPin, HIGH);
-  // Calculating the distance
-  afstand = duration * 0.034 / 2; // Speed of sound wave divided by 2 (go and back)
-  // Displays the distance on the Serial Monitor
-  Serial.print("Distance: ");
-  Serial.print(afstand);
-  Serial.println(" cm"); // ultrasoon waarde omvormen naar servo
-  if (afstand >= 6.00 && afstand <= 11.00) { //bakje laten zakken met opening naar ultrasoon
-    klepServo1.write(140);
-    klepServo2.write(92);
-    delay(1000);
-    klepServo1.write(140);
-    klepServo2.write(70);
-    delay(200);
-    klepServo2.write(60);
-    delay(200);
-    klepServo2.write(50);
-    delay(200);
-    klepServo2.write(40);
-    delay(200);
-    klepServo2.write(30);
-    delay(200);
-    klepServo2.write(20);
-  }
-  else { //servo laten zakken met opening van ultrasoon af
-    klepServo1.write(42);
-    klepServo2.write(20);
-    delay(1000);
-    klepServo1.write(50);
-    klepServo2.write(20);
-    klepServo1.write(60);
-    delay(200);
-    klepServo1.write(70);
-    delay(200);
-    klepServo1.write(80);
-    delay(200);
-    klepServo1.write(90);
-    delay(200);
-    klepServo1.write(100);
-    delay(200);
-    klepServo1.write(110);
-    delay(200);
-    klepServo1.write(121);
-    delay(200);
-  }
-  delay(300);
-  // band aanzetten nadat bakje erop gevallen is
-  digitalWrite(bandMotorPin, HIGH);
-  digitalWrite(trigPin2, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin2, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin2, LOW);
-  duration = pulseIn(echoPin2, HIGH);
-  afstand = duration * 0.034 / 2; //afstand meten Serial.print("distance: ");
-  Serial.println(afstand);
-  if (afstand >= 10 && afstand <= 11) {
-    digitalWrite(rolbandpin, LOW);
-    delay(1000);
-    Rtot = 0;
-    Gtot = 0;
-    Btot = 0;
-    for (int i = 0; i < 100; i++) {
-      pixy.video.getRGB( 160 / 2, 105 / 2, &r, &g, &b); // eerst breedte dan hoogte
-      Serial.print("Rood: ");
-      Serial.print(r);
-      Serial.print("groen ");
-      Serial.print(g);
-      Serial.print("Blauw: ");
-      Serial.println(b);
-      Rtot = r + Rtot;
-      Gtot = g + Gtot;
-      Btot = b + Btot;
-      delay(2);
-    }
-    delay(200);
-    RGB_BasePixy[0] = Rtot / 100;
-    RGB_BasePixy[1] = Gtot / 100;
-    RGB_BasePixy[2] = Btot / 100;
-    Serial.print("Rood: ");
-    Serial.print(RGB_BasePixy[0]);
-    Serial.print("groen ");
-    Serial.print(RGB_BasePixy[1]);
-    Serial.print("Blauw: ");
-    Serial.println(RGB_BasePixy[2]);
-    if ( g >= 150 && g <= 170) {
+ int soortBakje = analogRead(A0); //lezen wat de andere arduino stuurt
+    if ( soortBakje >= 200 && soortBakje <= 400) {
       Serial.println(" Doorzichtig bakje !! ");
       bakType = 1;
+      return 1; //terugsturen naar loop dat er een bakje is
     }
-    if (g >= 200 && g <= 255) {
-      Serial.println(" aluminium bakje !! ");
-      bakType = 2;
-    }
-    if ( g >= 171 && g <= 190) {
+    if (soortBakje >= 500 && soortBakje <= 700) {
       Serial.println(" PVC bakje !! ");
+      bakType = 2;
+      return 1; //terugsturen naar loop dat er een bakje is
+    }
+    if ( soortBakje >= 800 && soortBakje <= 1000) {
+      Serial.println(" aluminium bakje !! ");
       bakType = 3;
-    } Rtot = 0;
-    Gtot = 0;
-    Btot = 0;
-    digitalWrite(bandMotorPin, LOW);
-    delay(200);
+      return 1; //terugsturen naar loop dat er een bakje is
+    } 
+    if (soortBakje == 0){
+      digitalWrite(comPinOut,LOW); //communiceren dat er een nieuw bakje nodig is
+      return 0; //terugsturen naar loop dat er geen bakje is
   }
 }
+
 void doseer() {
   switch (bakType) { //verwerken welke knikkers er in moeten
     case 1:
@@ -448,5 +320,6 @@ knikkerCheck:
   }
   if (check() == HIGH && flag == HIGH ) { //checken of er genoeg knikkers in de buffer zitten
     doseer(); //doseren knikkers
+    digitalWrite(comPinOut,HIGH); //communiceren dat het bakje vol is
   }
 }
