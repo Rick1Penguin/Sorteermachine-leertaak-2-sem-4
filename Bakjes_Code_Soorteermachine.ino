@@ -3,6 +3,7 @@
 //De codes zijn opgedeeld in 2 arduinos zodat het als 2 losse delen beschouwd kan worden
 //dit is makkelijker met debuggen en problemen oplossen
 //De noodstop werkt tijdens de delays
+//test
 
 #include <Servo.h> //Servo library toegevoegd
 
