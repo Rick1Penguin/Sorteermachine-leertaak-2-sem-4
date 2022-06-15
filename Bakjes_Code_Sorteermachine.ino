@@ -3,7 +3,6 @@
 //De codes zijn opgedeeld in 2 arduinos zodat het als 2 losse delen beschouwd kan worden
 //dit is makkelijker met debuggen en problemen oplossen
 //De noodstop werkt tijdens de delays
-//test
 
 #include <Servo.h> //Servo library toegevoegd
 
@@ -13,16 +12,16 @@ Servo klepServo1; // linker servo vanaf de trechter
 Servo klepServo2; // rechter servo vanaf de trechter
 
 // Alle pinnen worden in variabelen gezet:
-const int echoPin = 47; //de echopin van de ultrasoon voor de bakjes orientatie
-const int trigPin = 49; //de trigpin van de ultrasoon voor de bakjes orientatie
-const int bandMotorPin = 35; //de pin die aangesloten staat op de MOSFET van de bandmotor
-const int trechterMotorPin = 43; //de pin die aangesloten staat op de MOSFET van de trechtermotor
-const int draaiServoPin = 10; //de pin die is aangesloten op de servo van de draaischijf voor het doseren
-const int klepServo1Pin = 10; //de pin die is aangesloten op de linker klep
-const int klepServo2Pin = 10; //de pin die is aangesloten op de rechter klep
-const int LDRPin = 10; //de pin die is aangesloten op de LDR
-const int comPinOut = 10; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
-const int comPinIn = 10; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
+const int echoPin = 53; //de echopin van de ultrasoon voor de bakjes orientatie
+const int trigPin = 51; //de trigpin van de ultrasoon voor de bakjes orientatie
+const int bandMotorPin = 31; //de pin die aangesloten staat op de MOSFET van de bandmotor
+const int trechterMotorPin = 35; //de pin die aangesloten staat op de MOSFET van de trechtermotor
+const int draaiServoPin = 4; //de pin die is aangesloten op de servo van de draaischijf voor het doseren
+const int klepServo1Pin = 6; //de pin die is aangesloten op de linker klep
+const int klepServo2Pin = 8; //de pin die is aangesloten op de rechter klep
+const int LDRPin = A15; //de pin die is aangesloten op de LDR
+const int comPinOut = 12; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
+const int comPinIn = 22; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
 const int noodstopPin = 2; //de noodstoppin
 
 // Alle globale variabele worden hier gedefineerd:
@@ -76,6 +75,8 @@ void setup() {
   draaiServo.write(160); //dit is de posietie waarbij het gat bij de trechter zit
   klepServo1.write(140); //dit is de positie waarbij de klepjes naar beneden staan
   klepServo2.write(20); //dit is de positie waarbij de klepjes naar beneden staan
+  
+  Serial.println("Setup Complete.");
 }
 
 void loop() {
@@ -86,20 +87,24 @@ void loop() {
   if(LDRWaarde >= LDR_bakjeDoorzichtig - 10 && LDRWaarde <= LDR_bakjeDoorzichtig + 10 ){
     digitalWrite(bandMotorPin, LOW);
     analogWrite(comPinOut, 300); //communiceren dat er een Doorzichtig bakje staat
+    Serial.println("Doorzichtig bakje");
     afvoerBakje();
     }
   else if(LDRWaarde >= LDR_bakjePVC - 10 && LDRWaarde <= LDR_bakjePVC + 10 ){
     digitalWrite(bandMotorPin, LOW);
     analogWrite(comPinOut, 600); //communiceren dat er een PVC bakje staat
+    Serial.println("PVC bakje");
     afvoerBakje();
     }  
   else if(LDRWaarde >= LDR_bakjeAluminium - 10 && LDRWaarde <= LDR_bakjeAluminium + 10 ){
     digitalWrite(bandMotorPin, LOW);
     analogWrite(comPinOut, 900); //communiceren dat er een Aluminium bakje staat
+    Serial.println("Aluminium bakje");
     afvoerBakje();
     }
   else{
     analogWrite(comPinOut, 0); //communiceren dat er geen bakje staat
+    Serial.println("Geen bakje");
     
     //checken of de tijd sinds het bakjes programma langer is geweest dan de wachttijd
     if(millis()- tijdSindsBakje >= wachttijdBakje){
@@ -120,6 +125,7 @@ void noodstop(){
     digitalWrite(trechterMotorPin, LOW); //motoren uitzetten
     digitalWrite(bandMotorPin, LOW);
     noodstopPlaatsgevonden = 1; //variabele om te weten of er in het programma eventueel metingen opnieuw gedaan moeten worden
+    Serial.println("Noodstop geactiveerd");
   }
   while(noodstopStatus == HIGH){
     noodstopStatus = digitalRead(noodstopPin); //loop om de arduino te freezen
@@ -128,6 +134,7 @@ void noodstop(){
     //alle voorheen geactiveerde actuatoren weer aanzetten
     digitalWrite(trechterMotorPin, trechterMotorStatus);
     digitalWrite(bandMotorPin, bandMotorStatus);
+    Serial.println("Noodstop gedeactiveerd");
   }
 }
 
@@ -200,6 +207,7 @@ void bakjesCode(){
     delay(200);
   }
   tijdSindsBakje = millis(); //omdat er net een bakje opgezet is moet dit geregistreerd worden
+  Serial.println("Bakje op de band gelegd");
   }
 
 void afvoerBakje(){
@@ -210,6 +218,7 @@ void afvoerBakje(){
   digitalWrite(bandMotorPin, HIGH); //transportband aan
   delay(1000); //wachten tot bakje is afgevoerd
   digitalWrite(bandMotorPin, LOW); //transportband uit
+    Serial.println("Bakje afgevoerd");
 }
 
 void ultrasoonOrientatie(){ 
