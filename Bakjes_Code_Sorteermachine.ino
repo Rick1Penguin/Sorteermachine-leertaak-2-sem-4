@@ -14,6 +14,7 @@ Servo klepServo2; // rechter servo vanaf de trechter
 // Alle pinnen worden in variabelen gezet:
 const int echoPin = 53; //de echopin van de ultrasoon voor de bakjes orientatie
 const int trigPin = 51; //de trigpin van de ultrasoon voor de bakjes orientatie
+const int IRPinBand = 43; //de pin van de ir onderbrekingssensor
 const int bandMotorPin = 31; //de pin die aangesloten staat op de MOSFET van de bandmotor
 const int trechterMotorPin = 35; //de pin die aangesloten staat op de MOSFET van de trechtermotor
 const int draaiServoPin = 4; //de pin die is aangesloten op de servo van de draaischijf voor het doseren
@@ -31,18 +32,22 @@ unsigned long tijdSindsBakje = millis();
 volatile bool noodstopPlaatsgevonden = 0;
 bool trechterMotorStatus;
 bool bandMotorStatus;
+bool IRBandStatus;
 
 // de wachttijd voot het transporteren van een bakje naar het knikkersysteem:
-const int wachttijdBakje = 5000; // 5 seconden
+const int wachttijdBakje = 8000; // 8 seconden
 
 //Callibratie Ultrasoon sensor:
-const int ultrasoon_BakjeLaag = 6; // de lage afstand in cm voor wanneer een bakje met de open kant naar de sensor ligt
+const float ultrasoon_BakjeLaag = 6.5; // de lage afstand in cm voor wanneer een bakje met de open kant naar de sensor ligt
 const int ultrasoon_BakjeHoog = 10; // de hoge afstand in cm voor wanneer een bakje met de open kant naar de sensor ligt
 
 //Callibratie LDR sensor:
-const int LDR_bakjeDoorzichtig = 400;
-const int LDR_bakjePVC = 300;
-const int LDR_bakjeAluminium = 450;
+const int LDR_bakjeDoorzichtigLaag = 150;
+const int LDR_bakjeDoorzichtigHoog = 250;
+const int LDR_bakjePVCLaag = 5;
+const int LDR_bakjePVCHoog = 45;
+const int LDR_bakjeAluminiumLaag = 55;
+const int LDR_bakjeAluminiumHoog = 110;
 
 void setup() {
   //De setup:
@@ -54,6 +59,7 @@ void setup() {
   //Alle pinmodes worden hier gedefineerd:
   pinMode(trigPin, OUTPUT); // Sets the Pin as an OUTPUT
   pinMode(echoPin, INPUT); // Sets the Pin as an INPUT
+  pinMode(IRPinBand, INPUT); 
   pinMode(bandMotorPin, OUTPUT);
   pinMode(trechterMotorPin, OUTPUT);
   pinMode(draaiServoPin, OUTPUT);
@@ -73,7 +79,7 @@ void setup() {
   digitalWrite(bandMotorPin, LOW);
   analogWrite(comPinOut, 0);
   draaiServo.write(160); //dit is de posietie waarbij het gat bij de trechter zit
-  klepServo1.write(140); //dit is de positie waarbij de klepjes naar beneden staan
+  klepServo1.write(120); //dit is de positie waarbij de klepjes naar beneden staan
   klepServo2.write(20); //dit is de positie waarbij de klepjes naar beneden staan
   
   Serial.println("Setup Complete.");
@@ -81,33 +87,44 @@ void setup() {
 
 void loop() {
   //de main code:
-  //Eerst wordt er gekeken of er al een bakje op de band staat en of deze vol is of niet
-  LDRWaarde = analogRead(LDRPin); //LDR wordt uitgelezen
-  //if statements voor kijken of er een bakje voor de ldr staat en welke dit is:
-  if(LDRWaarde >= LDR_bakjeDoorzichtig - 10 && LDRWaarde <= LDR_bakjeDoorzichtig + 10 ){
-    digitalWrite(bandMotorPin, LOW);
+  //Eerst wordt er gekeken of er een bakje voor het knikkergat staat:
+  IRBandStatus = digitalRead(IRPinBand); // de IR onderbrekingssensor
+  if(IRBandStatus == 0){
+    // Als de lichtstroom onderbroken is wordt er gekeken welk bakje het is:
+    Serial.println("Er staat een bakje, namelijk:");
+    delay(100);
+    digitalWrite(bandMotorPin, LOW); //Motor wordt stilgezet op de juiste plek
+    delay(1000); // delay om een constante meting te krijgen va de LDR
+    LDRWaarde = analogRead(LDRPin); //LDR wordt uitgelezen
+  if(LDRWaarde >= LDR_bakjeDoorzichtigLaag && LDRWaarde <= LDR_bakjeDoorzichtigHoog ){
     analogWrite(comPinOut, 300); //communiceren dat er een Doorzichtig bakje staat
+    Serial.print(LDRWaarde);
     Serial.println("Doorzichtig bakje");
-    afvoerBakje();
+    afvoerBakje(); //doorgestuurd naar de functie waar gekeken wordt of het bakje vol is en afgevoerd wordt
     }
-  else if(LDRWaarde >= LDR_bakjePVC - 10 && LDRWaarde <= LDR_bakjePVC + 10 ){
-    digitalWrite(bandMotorPin, LOW);
+  else if(LDRWaarde >= LDR_bakjePVCLaag && LDRWaarde <= LDR_bakjePVCHoog ){
     analogWrite(comPinOut, 600); //communiceren dat er een PVC bakje staat
+    Serial.print(LDRWaarde);
     Serial.println("PVC bakje");
-    afvoerBakje();
+    afvoerBakje(); //doorgestuurd naar de functie waar gekeken wordt of het bakje vol is en afgevoerd wordt
     }  
-  else if(LDRWaarde >= LDR_bakjeAluminium - 10 && LDRWaarde <= LDR_bakjeAluminium + 10 ){
-    digitalWrite(bandMotorPin, LOW);
+  else if(LDRWaarde >= LDR_bakjeAluminiumLaag && LDRWaarde <= LDR_bakjeAluminiumHoog ){
     analogWrite(comPinOut, 900); //communiceren dat er een Aluminium bakje staat
+    Serial.print(LDRWaarde);
     Serial.println("Aluminium bakje");
-    afvoerBakje();
+    afvoerBakje(); //doorgestuurd naar de functie waar gekeken wordt of het bakje vol is en afgevoerd wordt
     }
+    //Als geen van de bakjes voldeed wordt er teruggegaan en opnieuw gemeten
+  }
   else{
+    //Als de lichtstroom niet onderbroken is wordt er doorgegeven dat er geen bakje staat
     analogWrite(comPinOut, 0); //communiceren dat er geen bakje staat
+    Serial.print(LDRWaarde);
     Serial.println("Geen bakje");
     
     //checken of de tijd sinds het bakjes programma langer is geweest dan de wachttijd
     if(millis()- tijdSindsBakje >= wachttijdBakje){
+      digitalWrite(bandMotorPin, LOW);
       bakjesCode(); // een bakje op de rolband leggen en de tijdSindsBakje resetten
       }
     else{
@@ -153,6 +170,9 @@ void bakjesCode(){
   draaiServo.write(57); //gatpositie
   delay(1000);
   draaiServo.write(160); //beginpositie
+  delay(1000);
+
+  digitalWrite(trechterMotorPin, LOW); //vibratie motor op trechter wordt uitgezet
 
   //Ultrasoon uitlezen en bepalen orientatie bakje
   do{
@@ -202,10 +222,8 @@ void bakjesCode(){
     klepServo1.write(110);
     delay(200);
     klepServo1.write(121);
-    delay(200);
-    klepServo1.write(140);
-    delay(200);
   }
+  delay(500); //een kleine delay zodat de band pas gaat rollen als het bakje daadwerkelijk om de band staat
   tijdSindsBakje = millis(); //omdat er net een bakje opgezet is moet dit geregistreerd worden
   Serial.println("Bakje op de band gelegd");
   }
@@ -213,12 +231,13 @@ void bakjesCode(){
 void afvoerBakje(){
   bool bakjeVol;
   do {
-  bakjeVol = digitalRead(comPinIn);
-  } while (bakjeVol == LOW); //terwijl de andere arduino aangeeft dat het bakje leeg is blijven loopen
+   bakjeVol = digitalRead(comPinIn); //com met andere arduino
+   IRBandStatus = digitalRead(IRPinBand); // de IR onderbrekingssensor
+  } while (bakjeVol == LOW && IRBandStatus == LOW); //terwijl de andere arduino aangeeft dat het bakje leeg is en er een bakje voor staat blijven loopen
   digitalWrite(bandMotorPin, HIGH); //transportband aan
-  delay(1000); //wachten tot bakje is afgevoerd
+  delay(2500); //wachten tot bakje is afgevoerd
   digitalWrite(bandMotorPin, LOW); //transportband uit
-    Serial.println("Bakje afgevoerd");
+  Serial.println("Bakje afgevoerd");
 }
 
 void ultrasoonOrientatie(){ 
