@@ -65,6 +65,7 @@ void knikker_Klein() {
   
   //checken of er een knikker in het poortje zit:
   bool knikkerInPoortje = digitalRead(knikkerKleinDetectiePin);
+  knikkerInPoortje = HIGH;
   bool sensor;
   if(knikkerInPoortje == HIGH){
     sorteerServoK.write(102);//standaard naar de galzen buffer sturen
