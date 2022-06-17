@@ -17,30 +17,24 @@ Servo stopper_2K;
 Servo stopper_2G;
 
 // Alle pinnen worden in variabelen gezet:
-const uint8_t stopper_1GPin = 22; //servo pin
-const uint8_t stopper_2GPin = 23; //servo pin
-const uint8_t sorteerServoGPin = 24; //servo pin
-const uint8_t doseerServoGPin = 25; //servo pin
-const uint8_t stopper_1KPin = 26; //servo pin
-const uint8_t stopper_2KPin = 27; //servo pin
-const uint8_t sorteerServoKPin = 28; //servo pin
-const uint8_t doseerServoKPin = 29; //servo pin
+const uint8_t stopper_1GPin = 12; //servo pin
+const uint8_t stopper_2GPin = 11; //servo pin
+const uint8_t sorteerServoGPin = 10; //servo pin
+const uint8_t doseerServoGPin = 9; //servo pin
+const uint8_t stopper_1KPin = 8; //servo pin
+const uint8_t stopper_2KPin = 7; //servo pin
+const uint8_t sorteerServoKPin = 6; //servo pin
+const uint8_t doseerServoKPin = 5; //servo pin
 const uint8_t noodstopPin = 2; //Noodstop pin
 const uint8_t S0 = 44;  //kleurensensor pin
 const uint8_t S1 = 30;  //kleurensensor pin
 const uint8_t S2 = 31;  //kleurensensor pin
 const uint8_t S3 = 32;  //kleurensensor pin
 const uint8_t sensorOut = 33;  //kleurensensor pin
-const uint8_t comPinOut = 10; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
+const uint8_t comPinOut = 25; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
 const uint8_t comPinIn = A0; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
 
 // Alle globale variabele worden hier gedefineerd:
-int RGB_G[3];
-int RGB_K[3];
-int RGB_Base[3];
-int Stdev_BaseR;
-int Stdev_BaseG;
-int Stdev_BaseB;
 int glas = 0;
 int metaal = 0;
 int plastic = 0;
@@ -155,7 +149,7 @@ void noodstop(){
 }
 
 //de functie voor het sorteren van de grote knikkers:
-int knikker_Groot() {
+void knikker_Groot() {
   Serial.println("meten gote knikkers");
   delay(500);
   stopper_1G.write(122); //poortje open
@@ -164,11 +158,13 @@ int knikker_Groot() {
   delay(500);
   knikker_lezen();
   delay(2000);
-  Serial.println("gote knikker gesorteerd");
 }
 
 // de functie voor het lezen van de kleurensensor en het bijvoegen van de digitale buffers:
-int knikker_lezen() {
+void knikker_lezen() {
+  int Bluegem;
+  int Redgem;
+  int Greengem;
 //Een grote meting wordt gedaan en vervolgens wordt een gemiddelde bepaald:
 foutmeting:
   do{
@@ -176,9 +172,6 @@ foutmeting:
   int Red;
   int Green;
   int Blue;
-  int Bluegem;
-  int Redgem;
-  int Greengem;
   uint32_t Rtot = 0;
   uint32_t Gtot = 0;
   uint32_t Btot = 0;
@@ -224,8 +217,7 @@ foutmeting:
         stopper_2G.write(175);
         delay(500);
         stopper_2G.write(93);
-        Serial.println("Hout");
-        return 0;
+        Serial.println("Houten knikker gesorteerd bij de Grote knikkers");
       }
       //de waarden voor als er een Plastic knikker in zit:
       else if (Redgem > Plastic_RedgemLaag && Redgem < Plastic_RedgemHoog && Greengem > Plastic_GreengemLaag && Greengem < Plastic_GreengemHoog) { //checken plastic knikker
@@ -234,21 +226,20 @@ foutmeting:
         sorteerServoG.write(69);
         delay(500);
         stopper_2G.write(93);
-        Serial.println("Plastic");
-        return 1;
+        Serial.println("Plastic knikker gesorteerd bij de Grote knikkers");
       }
       //de waarden voor als er geen knikker in zit:
       else if (Redgem > Geen_RedgemLaag && Redgem < Geen_RedgemHoog && Greengem > Geen_GreengemLaag && Greengem < Geen_GreengemHoog) {
-        Serial.println("Geen knikker");
+        Serial.println("Geen knikker gesorteerd bij de Grote knikkers");
       }
       else {
-        Serial.println("Foutmeting");
+        Serial.println("Foutmeting bij de Grote knikkers");
         goto foutmeting; //hij meet de knikker opnieuw totdat er een goede meting is
       }
   }
 
 //de functie voor het sorteren van de kleine knikkers:
-int knikker_Klein() {
+void knikker_Klein() {
   delay(500);
   Serial.println("meten kleine knikkers");
   stopper_1K.write(120); //poortje open
