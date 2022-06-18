@@ -8,12 +8,12 @@
 
 //Alle servo van dit systeem worden gedeclareerd:
 Servo sorteerServoK; // de sorteerservo voor de kleine knikkers
-Servo sorteerServoG; // de sorteerservo voor de grote knikkers
 Servo doseerServoK; // de doseerservo voor de kleine knikkers
+Servo sorteerServoG; // de sorteerservo voor de grote knikkers
 Servo doseerServoG; // de doseerservo voor de grote knikkers
 Servo stopper_1K;
-Servo stopper_1G;
 Servo stopper_2K;
+Servo stopper_1G;
 Servo stopper_2G;
 
 // Alle pinnen worden in variabelen gezet:
@@ -21,18 +21,25 @@ const uint8_t stopper_1GPin = 12; //servo pin
 const uint8_t stopper_2GPin = 11; //servo pin
 const uint8_t sorteerServoGPin = 10; //servo pin
 const uint8_t doseerServoGPin = 9; //servo pin
+
 const uint8_t stopper_1KPin = 8; //servo pin
 const uint8_t stopper_2KPin = 7; //servo pin
 const uint8_t sorteerServoKPin = 6; //servo pin
 const uint8_t doseerServoKPin = 5; //servo pin
+const uint8_t knikkerKleinFSRPin = A0; //druksensor pin
+const uint8_t knikkerKleinMetaalPin = 33; //stroommeter pin
+
 const uint8_t noodstopPin = 2; //Noodstop pin
+
 const uint8_t S0 = 44;  //kleurensensor pin
 const uint8_t S1 = 30;  //kleurensensor pin
 const uint8_t S2 = 31;  //kleurensensor pin
 const uint8_t S3 = 32;  //kleurensensor pin
 const uint8_t sensorOut = 33;  //kleurensensor pin
+
 const uint8_t comPinOut = 25; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
-const uint8_t comPinIn = A0; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
+const uint8_t comPinIn1 = 40; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
+const uint8_t comPinIn2 = 41; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
 
 // Alle globale variabele worden hier gedefineerd:
 int glas = 0;
@@ -49,9 +56,9 @@ uint8_t ticker;
 volatile bool noodstopPlaatsgevonden = 0;
 
 //De hoeveelheid knikkers per bakje:
-int aluminium[4] = {1 , 0, 0, 2}; //Glas,Metaal,Plastic,Hout
-int doorzichtig[4] = {0, 2, 1, 0}; //Glas,Metaal,Plastic,Hout
-int PVC[4] = {1, 1, 1, 0}; //Glas,Metaal,Plastic,Hout
+const int aluminium[4] = {1 , 0, 0, 0}; //Glas,Metaal,Plastic,Hout
+const int doorzichtig[4] = {0, 1, 0, 0}; //Glas,Metaal,Plastic,Hout
+const int PVC[4] = {1, 1, 0, 0}; //Glas,Metaal,Plastic,Hout
 
 //Callibratie Kleuren sensor hout en plastic en geen:
 const int Hout_RedgemLaag = 300;
@@ -72,12 +79,22 @@ const int Geen_RedgemHoog = 300;
 const int Geen_GreengemLaag = 300;
 const int Geen_GreengemHoog = 300;
 
+//Callibratie kleine knikker systeem:
+const int stopper_1Khoekopen = 105; //de eerste servo
+const int stopper_1Khoekdicht = 180;
+const int stopper_2Khoekopen = 105; //de tweede servo
+const int stopper_2Khoekdicht = 180;
+const int sorteerServoKhoeklinks = 102; //de buffer voor glazen
+const int sorteerServoKhoekrechts = 55; //de buffer voor metalen
+const int FSR_grensWaarde = 5; 
+
+
 void setup() {
   //De setup:
   Serial.begin(9600); // Serial Communication is starting with 9600 of baudrate speed
 
   //De interupt voor de noodstop:
-  attachInterrupt (digitalPinToInterrupt (noodstopPin), noodstop, CHANGE); 
+  attachInterrupt (digitalPinToInterrupt (noodstopPin), noodstop, LOW); 
   
   //Alle pinmodes worden hier gedefineerd:
   pinMode(S1, OUTPUT);
@@ -85,23 +102,29 @@ void setup() {
   pinMode(S3, OUTPUT);
   pinMode(S0, OUTPUT);
   pinMode(sensorOut, INPUT);
+  
   pinMode(noodstop, INPUT);
   pinMode(comPinOut, OUTPUT);
-  pinMode(comPinIn, INPUT);
+  pinMode(comPinIn1, INPUT);
+  pinMode(comPinIn2, INPUT);
   pinMode(stopper_1GPin, OUTPUT);
   pinMode(stopper_2GPin, OUTPUT);
   pinMode(sorteerServoGPin, OUTPUT);
   pinMode(doseerServoGPin, OUTPUT);
+  
   pinMode(stopper_1KPin, OUTPUT);
   pinMode(stopper_2KPin, OUTPUT);
   pinMode(sorteerServoKPin, OUTPUT);
   pinMode(doseerServoKPin, OUTPUT);  
+  pinMode(knikkerKleinFSRPin, INPUT);
+  pinMode(knikkerKleinMetaalPin, INPUT);
   
   //Alle Servos worden verbinden met de juiste pin:
   stopper_1G.attach(stopper_1GPin);
   stopper_2G.attach(stopper_2GPin);
   sorteerServoG.attach(sorteerServoGPin);
   doseerServoG.attach(doseerServoGPin);
+  
   stopper_1K.attach(stopper_1KPin);
   stopper_2K.attach(stopper_2KPin);
   sorteerServoK.attach(sorteerServoKPin);
@@ -112,18 +135,22 @@ void setup() {
   digitalWrite(S1, LOW);
 
   //Alle actuatoren worden naar de beginpositie gebracht:
-  //alle servo's dicht:
+  digitalWrite(comPinOut,LOW); //comm wordt naar de beginpositie gebracht
+  
+  //alle servo's naar de beginpositie:
   stopper_1G.write(70); 
   stopper_2G.write(93);
-  stopper_1K.write(95);
-  stopper_2K.write(96);
+  
+  stopper_1K.write(stopper_1Khoekdicht);
+  stopper_2K.write(stopper_2Khoekdicht);
+  sorteerServoK.write(sorteerServoKhoeklinks);
   
   Serial.println("Setup Complete.");
 }
 
 void loop() {
   //de main code:
-  knikker_Groot(); //meten grote knikkers boven en sorteren
+  //knikker_Groot(); //meten grote knikkers boven en sorteren
   knikker_Klein(); //meten kleine knikkers onder en sorteren
   flag = bakjes(); //meten bakjes gedeelte en registreren of er een bakje staat
   if (check() == HIGH && flag == HIGH ) { //checken of er genoeg knikkers in de buffer zitten en of er een bakje staat
@@ -135,11 +162,11 @@ void loop() {
 void noodstop(){
   //de noodstop functie die vast staat aan een interrupt pin:
   bool noodstopStatus = digitalRead(noodstopPin);
-  if(noodstopStatus == HIGH){
+  if(noodstopStatus == LOW){
     noodstopPlaatsgevonden = 1; //variabele om te weten of er in het programma eventueel metingen opnieuw gedaan moeten worden
     Serial.println("Noodstop geactiveerd");
   }
-  while(noodstopStatus == HIGH){
+  while(noodstopStatus == LOW){
     noodstopStatus = digitalRead(noodstopPin); //loop om de arduino te freezen
   }
   if(noodstopPlaatsgevonden == 1){
@@ -240,16 +267,47 @@ foutmeting:
 
 //de functie voor het sorteren van de kleine knikkers:
 void knikker_Klein() {
+  //Poortje openen en sluiten, om de knikkers te doseren:
   delay(500);
   Serial.println("meten kleine knikkers");
-  stopper_1K.write(120); //poortje open
-  delay(105);
-  stopper_1K.write(95); //poortje dicht
+  stopper_2K.write(stopper_2Khoekdicht); //servo 2 sluiten
   delay(500);
-  knikker_lezen();
-  delay(200);
-  Serial.println("kleine knikker gesorteerd");
-}
+  stopper_1K.write(stopper_2Khoekopen); //eerste poortje open
+  delay(1000);
+  stopper_1K.write(stopper_2Khoekdicht); //eerste poortje dicht
+  delay(500);
+
+  //het 2e poortje wordt geopend en er wordt gekeken welke knikker het is:
+    bool sensor;
+    int FSR;
+    sorteerServoK.write(sorteerServoKhoeklinks);//standaard naar de galzen buffer sturen
+    delay(200);
+    stopper_2K.write(stopper_2Khoekopen); //servo 2 openen
+    unsigned long Tijd1 = millis();
+    unsigned long Tijd2;
+
+    do{
+      // loopje herhalen totdat een bepaalde tijd is bereikt
+      sensor = digitalRead(knikkerKleinMetaalPin);
+      FSR = analogRead(knikkerKleinFSRPin);
+      Tijd2 = millis();
+    }while(Tijd2-Tijd1 <= 3000 && sensor == LOW && FSR <= FSR_grensWaarde);
+
+    if(sensor == LOW && FSR > FSR_grensWaarde){
+      //als de sensor laag is was het een glazen knikker
+      glas++;
+      Serial.println("Glazen knikker gesorteerd bij de kleine knikkers");
+    }
+    else if(sensor == HIGH){
+      //als de sensor hoog is was het een metalen knikker
+      sorteerServoK.write(sorteerServoKhoekrechts);//naar de metalen buffer sturen
+      metaal++;
+      Serial.println("Metalen knikker gesorteerd bij de kleine knikkers");      
+    }
+    else if(sensor == LOW && FSR <= FSR_grensWaarde){
+      Serial.println("Geen knikker gesorteerd bij de kleine knikkers");
+    }
+  }
 
 // kijken of er genoeg knikkers in de buffers zitten om de bakjes te vullen:
 int check() {
@@ -280,23 +338,24 @@ int check() {
 
 //hier wordt gekeken en doorgevoerd welk bakje er voor de machine staat:
 int bakjes() {
- int soortBakje = analogRead(A0); //lezen wat de andere arduino stuurt
-    if ( soortBakje >= 200 && soortBakje <= 400) {
+ bool soortBakje1 = digitalRead(comPinIn1); //lezen wat de andere arduino stuurt
+ bool soortBakje2 = digitalRead(comPinIn1); //lezen wat de andere arduino stuurt
+    if ( soortBakje1 == 1 && soortBakje2 == 1) {
       Serial.println(" Doorzichtig bakje !! ");
       bakType = 1;
       return 1; //terugsturen naar loop dat er een bakje is
     }
-    else if (soortBakje >= 500 && soortBakje <= 700) {
+    else if (soortBakje1 == 1 && soortBakje2 == 0) {
       Serial.println(" PVC bakje !! ");
       bakType = 2;
       return 1; //terugsturen naar loop dat er een bakje is
     }
-    else if ( soortBakje >= 800 && soortBakje <= 1000) {
+    else if ( soortBakje1 == 0 && soortBakje2 == 1) {
       Serial.println(" aluminium bakje !! ");
       bakType = 3;
       return 1; //terugsturen naar loop dat er een bakje is
     } 
-    else if (soortBakje == 0){
+    else if (soortBakje1 == 0 && soortBakje2 == 0){
       Serial.println(" Geen bakje ");
       digitalWrite(comPinOut,LOW); //communiceren dat er een nieuw bakje nodig is
       return 0; //terugsturen naar loop dat er geen bakje is
@@ -334,6 +393,7 @@ void doseer() {
     doseerServoK.write(0);
     delay(1000);
     doseerServoK.write(84);
+    delay(1000);
     glas_aantal--;
     if (glas_aantal == 0) {
       ticker = 2; //als er niet meer van deze soort knikkers nodig is wordt de volgende knikker gedaan
@@ -345,6 +405,7 @@ void doseer() {
     doseerServoK.write(180);
     delay(1000);
     doseerServoK.write(84);
+    delay(1000);
     metaal_aantal--;
     if (metaal_aantal == 0)
       ticker = 3; //als er niet meer van deze soort knikkers nodig is wordt de volgende knikker gedaan
@@ -355,6 +416,7 @@ void doseer() {
     doseerServoG.write(0);
     delay(1000);
     doseerServoG.write(92);
+    delay(1000);
     plastic_aantal--;
     if (plastic_aantal == 0)
       ticker = 4; //als er niet meer van deze soort knikkers nodig is wordt de volgende knikker gedaan
@@ -370,7 +432,7 @@ void doseer() {
       ticker = 0; //als er niet meer van deze soort knikkers nodig is wordt de volgende knikker gedaan
     goto knikkerCheck;
   }
-  delay(1000); //delay om de knikker genoeg tijd te geven om naar het bakje te rollen
+  delay(2000); //delay om de knikker genoeg tijd te geven om naar het bakje te rollen
   digitalWrite(comPinOut,HIGH); //communiceren met andere arduino dat het bakje vol is
   Serial.println("Bakje gevuld");
 } 
