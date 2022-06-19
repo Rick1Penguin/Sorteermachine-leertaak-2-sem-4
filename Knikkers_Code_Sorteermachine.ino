@@ -1,5 +1,5 @@
 //Deze code gaat samen met de code voor het bakjessysteem, de 2 arduinos communiceren met elkaar
-//door 2 pinnen die een PWM signaal krijgen of een Bool signaal
+//door 3 pinnen die een Bool signaal
 //De codes zijn opgedeeld in 2 arduinos zodat het als 2 losse delen beschouwd kan worden
 //dit is makkelijker met debuggen en problemen oplossen
 //De noodstop werkt tijdens de delays
@@ -40,15 +40,15 @@ const uint8_t comPinIn1 = 40; //de pin die wordt gebruikt om te communiceren naa
 const uint8_t comPinIn2 = 41; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
 
 // Alle globale variabele worden hier gedefineerd:
-int glasMax = 5; //het maximaal aantal knikkers wat past in de buffers
-int metaalMax = 5;
-int plasticMax = 5;
-int houtMax = 5;
-int glas = 0; //het aantal knikkers in de buffer
-int metaal = 0;
-int plastic = 0;
-int hout = 0;
-int bakType;
+const uint8_t glasMax = 5; //het maximaal aantal knikkers wat past in de buffers
+const uint8_t metaalMax = 5;
+const uint8_t plasticMax = 5;
+const uint8_t houtMax = 5;
+uint8_t glas = 0; //het aantal knikkers in de buffer
+uint8_t metaal = 0;
+uint8_t plastic = 0;
+uint8_t hout = 0;
+uint8_t bakType;
 bool flag = 0; //flag om de waarde te dragen of er een bakje voor de machine staat of niet
 uint8_t glas_aantal; //het aantal knikkers benodigd voor een bakje
 uint8_t metaal_aantal;
@@ -70,47 +70,47 @@ const int PVC[4] = {1, 1, 0, 0}; //Glas,Metaal,Plastic,Hout
 
 //Callibratie Grote knikker systeem:
 //Kleurensensor hout:
-const int Hout_RedLaag = 40;
-const int Hout_RedHoog = 70;
-const int Hout_GreenLaag = 30;
-const int Hout_GreenHoog = 60;
-const int Hout_BlueLaag = 30;
-const int Hout_BlueHoog = 50;
+const uint8_t Hout_RedLaag = 40;
+const uint8_t Hout_RedHoog = 70;
+const uint8_t Hout_GreenLaag = 30;
+const uint8_t Hout_GreenHoog = 60;
+const uint8_t Hout_BlueLaag = 30;
+const uint8_t Hout_BlueHoog = 50;
 //Kleurensensor Plastic:
-const int Plastic_RedLaag = 100;
-const int Plastic_RedHoog = 130;
-const int Plastic_GreenLaag = 110;
-const int Plastic_GreenHoog = 140;
-const int Plastic_BlueLaag = 100;
-const int Plastic_BlueHoog = 130;
+const uint8_t Plastic_RedLaag = 100;
+const uint8_t Plastic_RedHoog = 130;
+const uint8_t Plastic_GreenLaag = 110;
+const uint8_t Plastic_GreenHoog = 140;
+const uint8_t Plastic_BlueLaag = 100;
+const uint8_t Plastic_BlueHoog = 130;
 //Kleurensensor standaard:
-const int redMin = 28; // Red minimum value
-const int redMax = 178; // Red maximum value
-const int greenMin = 32; // Green minimum value
-const int greenMax = 199; // Green maximum value
-const int blueMin = 28; // Blue minimum value
-const int blueMax = 160; // Blue maximum value
+const uint8_t redMin = 28; // Red minimum value
+const uint8_t redMax = 178; // Red maximum value
+const uint8_t greenMin = 32; // Green minimum value
+const uint8_t greenMax = 199; // Green maximum value
+const uint8_t blueMin = 28; // Blue minimum value
+const uint8_t blueMax = 160; // Blue maximum value
 //Servo variables:
-const int knikkerServo_Begin = 18;
-const int knikkerServo_Sensor = 80;
-const int knikkerServo_Eind = 144;
-const int sorteerServoGhoekPlastic = 69; //de buffer voor plastic
-const int sorteerServoGhoekHout = 0; //de buffer voor hout
-const int doseerServoGhoekHout = 180;
-const int doseerServoGhoekPlastic = 0;
-const int doseerServoGhoekMidden = 92;
+const uint8_t knikkerServo_Begin = 18;
+const uint8_t knikkerServo_Sensor = 80;
+const uint8_t knikkerServo_Eind = 144;
+const uint8_t sorteerServoGhoekPlastic = 69; //de buffer voor plastic
+const uint8_t sorteerServoGhoekHout = 0; //de buffer voor hout
+const uint8_t doseerServoGhoekHout = 180;
+const uint8_t doseerServoGhoekPlastic = 0;
+const uint8_t doseerServoGhoekMidden = 92;
 
 //Callibratie kleine knikker systeem:
-const int stopper_1Khoekopen = 105; //de eerste servo
-const int stopper_1Khoekdicht = 180;
-const int stopper_2Khoekopen = 105; //de tweede servo
-const int stopper_2Khoekdicht = 180;
-const int sorteerServoKhoekGlas = 102; //de buffer voor glazen
-const int sorteerServoKhoekMetaal = 55; //de buffer voor metalen
-const int doseerServoKhoekMetaal = 180;
-const int doseerServoKhoekGlas = 0;
-const int doseerServoKhoekMidden = 84;
-const int FSR_grensWaarde = 5; //grenswaarde voor de FSR
+const uint8_t stopper_1Khoekopen = 105; //de eerste servo
+const uint8_t stopper_1Khoekdicht = 180;
+const uint8_t stopper_2Khoekopen = 105; //de tweede servo
+const uint8_t stopper_2Khoekdicht = 180;
+const uint8_t sorteerServoKhoekGlas = 102; //de buffer voor glazen
+const uint8_t sorteerServoKhoekMetaal = 55; //de buffer voor metalen
+const uint8_t doseerServoKhoekMetaal = 180;
+const uint8_t doseerServoKhoekGlas = 0;
+const uint8_t doseerServoKhoekMidden = 84;
+const uint8_t FSR_grensWaarde = 5; //grenswaarde voor de FSR
 
 
 void setup() {
