@@ -11,14 +11,12 @@ Servo sorteerServoK; // de sorteerservo voor de kleine knikkers
 Servo doseerServoK; // de doseerservo voor de kleine knikkers
 Servo sorteerServoG; // de sorteerservo voor de grote knikkers
 Servo doseerServoG; // de doseerservo voor de grote knikkers
-Servo stopper_1K;
-Servo stopper_2K;
-Servo stopper_1G;
-Servo stopper_2G;
+Servo stopper_1K; //stop servo 1 voor kleine knikkers
+Servo stopper_2K; //stop servo 2 voor kleine knikkers
+Servo knikkerServoG; //detectie servo wiel voor Grote knikkers
 
 // Alle pinnen worden in variabelen gezet:
-const uint8_t stopper_1GPin = 12; //servo pin
-const uint8_t stopper_2GPin = 11; //servo pin
+const uint8_t knikkerServoGPin = 11; //servo pin
 const uint8_t sorteerServoGPin = 10; //servo pin
 const uint8_t doseerServoGPin = 9; //servo pin
 
@@ -42,51 +40,73 @@ const uint8_t comPinIn1 = 40; //de pin die wordt gebruikt om te communiceren naa
 const uint8_t comPinIn2 = 41; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
 
 // Alle globale variabele worden hier gedefineerd:
-int glas = 0;
+int glas = 0; //het aantal knikkers in de buffer
 int metaal = 0;
 int plastic = 0;
 int hout = 0;
 int bakType;
 bool flag = 0; //flag om de waarde te dragen of er een bakje voor de machine staat of niet
-uint8_t glas_aantal;
+uint8_t glas_aantal; //het aantal knikkers benodigd voor een bakje
 uint8_t metaal_aantal;
 uint8_t plastic_aantal;
 uint8_t hout_aantal;
 uint8_t ticker;
 volatile bool noodstopPlaatsgevonden = 0;
+int redPW = 0; // Variables for Color Pulse Width Measurements
+int greenPW = 0;
+int bluePW = 0;
+int redValue; //variabeles voor knikkerdetectie
+int greenValue;
+int blueValue;
 
 //De hoeveelheid knikkers per bakje:
 const int aluminium[4] = {1 , 0, 0, 0}; //Glas,Metaal,Plastic,Hout
 const int doorzichtig[4] = {0, 1, 0, 0}; //Glas,Metaal,Plastic,Hout
 const int PVC[4] = {1, 1, 0, 0}; //Glas,Metaal,Plastic,Hout
 
-//Callibratie Kleuren sensor hout en plastic en geen:
-const int Hout_RedgemLaag = 300;
-const int Hout_RedgemHoog = 300;
-
-const int Hout_GreengemLaag = 300;
-const int Hout_GreengemHoog = 300;
-
-const int Plastic_RedgemLaag = 300;
-const int Plastic_RedgemHoog = 300;
-
-const int Plastic_GreengemLaag = 300;
-const int Plastic_GreengemHoog = 300;
-
-const int Geen_RedgemLaag = 300;
-const int Geen_RedgemHoog = 300;
-
-const int Geen_GreengemLaag = 300;
-const int Geen_GreengemHoog = 300;
+//Callibratie Grote knikker systeem:
+//Kleurensensor hout:
+const int Hout_RedLaag = 40;
+const int Hout_RedHoog = 70;
+const int Hout_GreenLaag = 30;
+const int Hout_GreenHoog = 60;
+const int Hout_BlueLaag = 30;
+const int Hout_BlueHoog = 50;
+//Kleurensensor Plastic:
+const int Plastic_RedLaag = 100;
+const int Plastic_RedHoog = 130;
+const int Plastic_GreenLaag = 110;
+const int Plastic_GreenHoog = 140;
+const int Plastic_BlueLaag = 100;
+const int Plastic_BlueHoog = 130;
+//Kleurensensor standaard:
+const int redMin = 28; // Red minimum value
+const int redMax = 178; // Red maximum value
+const int greenMin = 32; // Green minimum value
+const int greenMax = 199; // Green maximum value
+const int blueMin = 28; // Blue minimum value
+const int blueMax = 160; // Blue maximum value
+//Servo variables:
+const int knikkerServo_Begin = 18;
+const int knikkerServo_Sensor = 80;
+const int knikkerServo_Eind = 144;
+const int sorteerServoGhoekPlastic = 69; //de buffer voor plastic
+const int sorteerServoGhoekHout = 0; //de buffer voor hout
+const int doseerServoGhoekHout = 180;
+const int doseerServoGhoekPlastic = 0;
+const int doseerServoGhoekMidden = 92;
 
 //Callibratie kleine knikker systeem:
 const int stopper_1Khoekopen = 105; //de eerste servo
 const int stopper_1Khoekdicht = 180;
 const int stopper_2Khoekopen = 105; //de tweede servo
 const int stopper_2Khoekdicht = 180;
-const int sorteerServoKhoeklinks = 102; //de buffer voor glazen
-const int sorteerServoKhoekrechts = 55; //de buffer voor metalen
-const int FSR_grensWaarde = 5; 
+const int sorteerServoKhoekGlas = 102; //de buffer voor glazen
+const int sorteerServoKhoekMetaal = 55; //de buffer voor metalen
+const int doseerServoKhoekMetaal = 180;
+const int doseerServoKhoekGlas = 0;
+const int doseerServoKhoekMidden = 84;
+const int FSR_grensWaarde = 5; //grenswaarde voor de FSR
 
 
 void setup() {
@@ -97,18 +117,17 @@ void setup() {
   attachInterrupt (digitalPinToInterrupt (noodstopPin), noodstop, LOW); 
   
   //Alle pinmodes worden hier gedefineerd:
+  pinMode(S0, OUTPUT);
   pinMode(S1, OUTPUT);
   pinMode(S2, OUTPUT);
   pinMode(S3, OUTPUT);
-  pinMode(S0, OUTPUT);
   pinMode(sensorOut, INPUT);
   
   pinMode(noodstop, INPUT);
   pinMode(comPinOut, OUTPUT);
   pinMode(comPinIn1, INPUT);
   pinMode(comPinIn2, INPUT);
-  pinMode(stopper_1GPin, OUTPUT);
-  pinMode(stopper_2GPin, OUTPUT);
+  pinMode(knikkerServoGPin, OUTPUT);
   pinMode(sorteerServoGPin, OUTPUT);
   pinMode(doseerServoGPin, OUTPUT);
   
@@ -120,8 +139,7 @@ void setup() {
   pinMode(knikkerKleinMetaalPin, INPUT);
   
   //Alle Servos worden verbinden met de juiste pin:
-  stopper_1G.attach(stopper_1GPin);
-  stopper_2G.attach(stopper_2GPin);
+  knikkerServoG.attach(knikkerServoGPin);
   sorteerServoG.attach(sorteerServoGPin);
   doseerServoG.attach(doseerServoGPin);
   
@@ -130,7 +148,7 @@ void setup() {
   sorteerServoK.attach(sorteerServoKPin);
   doseerServoK.attach(doseerServoKPin);
   
-  //aanzetten motoren kleurensensor:
+  // Set Frequency scaling to 20%
   digitalWrite(S0, HIGH);
   digitalWrite(S1, LOW);
 
@@ -138,19 +156,19 @@ void setup() {
   digitalWrite(comPinOut,LOW); //comm wordt naar de beginpositie gebracht
   
   //alle servo's naar de beginpositie:
-  stopper_1G.write(70); 
-  stopper_2G.write(93);
+  knikkerServoG.write(knikkerServo_Begin);
+  sorteerServoG.write(sorteerServoGhoekHout);
   
   stopper_1K.write(stopper_1Khoekdicht);
   stopper_2K.write(stopper_2Khoekdicht);
-  sorteerServoK.write(sorteerServoKhoeklinks);
+  sorteerServoK.write(sorteerServoKhoekGlas);
   
   Serial.println("Setup Complete.");
 }
 
 void loop() {
   //de main code:
-  //knikker_Groot(); //meten grote knikkers boven en sorteren
+  knikker_Groot(); //meten grote knikkers boven en sorteren
   knikker_Klein(); //meten kleine knikkers onder en sorteren
   flag = bakjes(); //meten bakjes gedeelte en registreren of er een bakje staat
   if (check() == HIGH && flag == HIGH ) { //checken of er genoeg knikkers in de buffer zitten en of er een bakje staat
@@ -177,93 +195,114 @@ void noodstop(){
 
 //de functie voor het sorteren van de grote knikkers:
 void knikker_Groot() {
-  Serial.println("meten gote knikkers");
-  delay(500);
-  stopper_1G.write(122); //poortje open
-  delay(145);
-  stopper_1G.write(70); //poortje dicht
-  delay(500);
-  knikker_lezen();
-  delay(2000);
+  // wiel draaien naar beginpositie en naar de sensor:
+  Serial.println("meten grote knikkers");
+  knikkerServoG.write(knikkerServo_Begin);
+  delay(1000);
+    for(int hoek = knikkerServo_Begin; hoek <= knikkerServo_Sensor; hoek++){ 
+      knikkerServoG.write(hoek); //per stap van 1 graden wordt de servo aangestuurd
+      delay(3.7);
+    }
+  delay(1000);
+  
+  //kleurensensor uitlezen:
+  delay(100);// Delay to stabilize sensor
+  redPW = getRedPW();  // Read Red value
+  redValue = map(redPW, redMin, redMax, 255, 0);  // Map to value from 0-255
+  delay(100); // Delay to stabilize sensor
+  greenPW = getGreenPW();  // Read Green value
+  greenValue = map(greenPW, greenMin, greenMax, 255, 0);  // Map to value from 0-255
+  delay(100); // Delay to stabilize sensor
+  bluePW = getBluePW();  // Read Blue value
+  blueValue = map(bluePW, blueMin, blueMax, 255, 0);  // Map to value from 0-255
+
+  // hout knikker:
+  if (redValue > Hout_RedLaag && redValue < Hout_RedHoog && greenValue > Hout_GreenLaag && greenValue < Hout_GreenHoog && blueValue > Hout_BlueLaag && blueValue < Hout_BlueHoog) {
+    Serial.println(" hout bij de grote knikkers");
+    sorteerServoG.write(sorteerServoGhoekHout); //sturen naar de hout buffer
+    for(int hoek = knikkerServo_Sensor; hoek <= knikkerServo_Eind; hoek++){ 
+      knikkerServoG.write(hoek); //per stap van 1 graden wordt de servo aangestuurd
+      delay(3.7);
+    }
+    hout++;
+    delay(2000);
+    for(int hoek = knikkerServo_Eind; hoek >= knikkerServo_Begin; hoek--){ 
+      knikkerServoG.write(hoek); //per stap van 1 graden wordt de servo aangestuurd
+      delay(3.7);
+    }
+  }
+  
+  // plastic knikker:
+  if (redValue > Plastic_RedLaag && redValue < Plastic_RedHoog && greenValue > Plastic_GreenLaag && greenValue < Plastic_GreenHoog && blueValue > Plastic_BlueLaag && blueValue < Plastic_BlueHoog) {
+    Serial.println(" plastic bij de grote knikkers");
+    sorteerServoG.write(sorteerServoGhoekPlastic); //sturen naar de plastic buffer
+    for(int hoek = knikkerServo_Sensor; hoek <= knikkerServo_Eind; hoek++){ 
+      knikkerServoG.write(hoek); //per stap van 1 graden wordt de servo aangestuurd
+      delay(3.7);
+    }
+    plastic++;
+    delay(2000);
+    for(int hoek = knikkerServo_Eind; hoek >= knikkerServo_Begin; hoek--){ 
+      knikkerServoG.write(hoek); //per stap van 1 graden wordt de servo aangestuurd
+      delay(3.7);
+    }
+  }
+
+  //geen knikker:
+  else {
+    Serial.println(" geen knikker bij de grote knikkers");
+    for(int hoek = knikkerServo_Sensor; hoek >= knikkerServo_Begin; hoek--){ 
+      knikkerServoG.write(hoek); //per stap van 1 graden wordt de servo aangestuurd
+      delay(3.7);
+    }
+  }
+  // Print output to Serial Monitor
+  Serial.print("Red = ");
+  Serial.print(redValue);
+  Serial.print(" - Green = ");
+  Serial.print(greenValue);
+  Serial.print(" - Blue = ");
+  Serial.println(blueValue);
 }
 
-// de functie voor het lezen van de kleurensensor en het bijvoegen van de digitale buffers:
-void knikker_lezen() {
-  int Bluegem;
-  int Redgem;
-  int Greengem;
-//Een grote meting wordt gedaan en vervolgens wordt een gemiddelde bepaald:
-foutmeting:
-  do{
-  noodstopPlaatsgevonden = 0; //noodstopplaatsgevonden resetten voor als er iets gebeurt tijdens de meting
-  int Red;
-  int Green;
-  int Blue;
-  uint32_t Rtot = 0;
-  uint32_t Gtot = 0;
-  uint32_t Btot = 0;
+// Function to read Red Pulse Widths bij de grote knikkers
+int getRedPW() {
+  // Set sensor to read Red only
   digitalWrite(S2, LOW);
   digitalWrite(S3, LOW);
-  delay(200);
-  for (int i = 0; i < 100; i++) { //meten 100 rode waardes voor gemiddelde
-    Red = pulseIn(sensorOut, LOW);
-    Rtot = Red + Rtot;
-  }
-  Redgem = Rtot / 100; //gemiddelde berekenen
+  // Define integer to represent Pulse Width
+  int PW;
+  // Read the output Pulse Width
+  PW = pulseIn(sensorOut, LOW);
+  // Return the value
+  return PW;
+}
+
+// Function to read Green Pulse Widths bij de grote knikkers
+int getGreenPW() {
+  // Set sensor to read Green only
   digitalWrite(S2, HIGH);
   digitalWrite(S3, HIGH);
-  delay(200);
-  for (int i = 0; i < 100; i++) { //meten 100 groene waardes voor gemiddelde
-    Green = pulseIn(sensorOut, LOW);
-    Gtot = Green + Gtot;
-    //Serial.println(Green);
-    //Serial.println(Gtot);
-  }
-  Greengem = Gtot / 100; //gemiddelde berekenen digitalWrite(S2, LOW);
-  digitalWrite(S3, HIGH);
-  delay(200);
-  for (int i = 0; i < 100; i++) { //meten 100 blauwe waardes voor gemiddelde
-    Blue = pulseIn(sensorOut, LOW);
-    Btot = Blue + Btot;
-  }
-  Bluegem = Btot / 100; //gemiddelde berekenen
-  }while(noodstopPlaatsgevonden == 1); //loop herhalen als de noodstup ingedrukt is
-  
-  Serial.print("Rode Waarde: ");
-  Serial.print(Redgem);
-  Serial.print("Groene Waarde: ");
-  Serial.print(Greengem);
-  Serial.print("Blauwe Waarde: ");
-  Serial.println(Bluegem);
+  // Define integer to represent Pulse Width
+  int PW;
+  // Read the output Pulse Width
+  PW = pulseIn(sensorOut, LOW);
+  // Return the value
+  return PW;
+}
 
-//De waarden van de kleurensensor worden vergeleken met de waarden van verschillende knikkers:
-      //de waarden voor als er een Houten knikker in zit:
-      if (Redgem > Hout_RedgemLaag && Redgem < Hout_RedgemHoog && Greengem > Hout_GreengemLaag && Greengem < Hout_GreengemHoog) { //checken hout knikker
-        hout++;
-        sorteerServoG.write(0);
-        stopper_2G.write(175);
-        delay(500);
-        stopper_2G.write(93);
-        Serial.println("Houten knikker gesorteerd bij de Grote knikkers");
-      }
-      //de waarden voor als er een Plastic knikker in zit:
-      else if (Redgem > Plastic_RedgemLaag && Redgem < Plastic_RedgemHoog && Greengem > Plastic_GreengemLaag && Greengem < Plastic_GreengemHoog) { //checken plastic knikker
-        plastic++;
-        stopper_2G.write(175);
-        sorteerServoG.write(69);
-        delay(500);
-        stopper_2G.write(93);
-        Serial.println("Plastic knikker gesorteerd bij de Grote knikkers");
-      }
-      //de waarden voor als er geen knikker in zit:
-      else if (Redgem > Geen_RedgemLaag && Redgem < Geen_RedgemHoog && Greengem > Geen_GreengemLaag && Greengem < Geen_GreengemHoog) {
-        Serial.println("Geen knikker gesorteerd bij de Grote knikkers");
-      }
-      else {
-        Serial.println("Foutmeting bij de Grote knikkers");
-        goto foutmeting; //hij meet de knikker opnieuw totdat er een goede meting is
-      }
-  }
+// Function to read Blue Pulse Widths bij de grote knikkers
+int getBluePW() {
+  // Set sensor to read Blue only
+  digitalWrite(S2, LOW);
+  digitalWrite(S3, HIGH);
+  // Define integer to represent Pulse Width
+  int PW;
+  // Read the output Pulse Width
+  PW = pulseIn(sensorOut, LOW);
+  // Return the value
+  return PW;
+}
 
 //de functie voor het sorteren van de kleine knikkers:
 void knikker_Klein() {
@@ -272,15 +311,15 @@ void knikker_Klein() {
   Serial.println("meten kleine knikkers");
   stopper_2K.write(stopper_2Khoekdicht); //servo 2 sluiten
   delay(500);
-  stopper_1K.write(stopper_2Khoekopen); //eerste poortje open
+  stopper_1K.write(stopper_1Khoekopen); //eerste poortje open
   delay(1000);
-  stopper_1K.write(stopper_2Khoekdicht); //eerste poortje dicht
+  stopper_1K.write(stopper_1Khoekdicht); //eerste poortje dicht
   delay(500);
 
   //het 2e poortje wordt geopend en er wordt gekeken welke knikker het is:
     bool sensor;
     int FSR;
-    sorteerServoK.write(sorteerServoKhoeklinks);//standaard naar de galzen buffer sturen
+    sorteerServoK.write(sorteerServoKhoekGlas);//standaard naar de galzen buffer sturen
     delay(200);
     stopper_2K.write(stopper_2Khoekopen); //servo 2 openen
     unsigned long Tijd1 = millis();
@@ -300,7 +339,7 @@ void knikker_Klein() {
     }
     else if(sensor == HIGH){
       //als de sensor hoog is was het een metalen knikker
-      sorteerServoK.write(sorteerServoKhoekrechts);//naar de metalen buffer sturen
+      sorteerServoK.write(sorteerServoKhoekMetaal);//naar de metalen buffer sturen
       metaal++;
       Serial.println("Metalen knikker gesorteerd bij de kleine knikkers");      
     }
@@ -339,7 +378,7 @@ int check() {
 //hier wordt gekeken en doorgevoerd welk bakje er voor de machine staat:
 int bakjes() {
  bool soortBakje1 = digitalRead(comPinIn1); //lezen wat de andere arduino stuurt
- bool soortBakje2 = digitalRead(comPinIn1); //lezen wat de andere arduino stuurt
+ bool soortBakje2 = digitalRead(comPinIn2); //lezen wat de andere arduino stuurt
     if ( soortBakje1 == 1 && soortBakje2 == 1) {
       Serial.println(" Doorzichtig bakje !! ");
       bakType = 1;
@@ -390,11 +429,12 @@ void doseer() {
   knikkerCheck: //een goto om als er genoeg knikkers per soort gedoseerd zijn opnieuw door alle if statements te lopen
   //glazen knikkers:
   if (glas_aantal = !0 && ticker == 1) {
-    doseerServoK.write(0);
+    doseerServoK.write(doseerServoKhoekGlas);
     delay(1000);
-    doseerServoK.write(84);
+    doseerServoK.write(doseerServoKhoekMidden);
     delay(1000);
     glas_aantal--;
+    glas--;
     if (glas_aantal == 0) {
       ticker = 2; //als er niet meer van deze soort knikkers nodig is wordt de volgende knikker gedaan
     }
@@ -402,32 +442,35 @@ void doseer() {
   }
   //metalen knikkers:
   if (metaal_aantal = !0 && ticker == 2) {
-    doseerServoK.write(180);
+    doseerServoK.write(doseerServoKhoekMetaal);
     delay(1000);
-    doseerServoK.write(84);
+    doseerServoK.write(doseerServoKhoekMidden);
     delay(1000);
     metaal_aantal--;
+    metaal--;
     if (metaal_aantal == 0)
       ticker = 3; //als er niet meer van deze soort knikkers nodig is wordt de volgende knikker gedaan
     goto knikkerCheck;
   }
   //plastic knikkers:
   if (plastic_aantal = !0 && ticker == 3) {
-    doseerServoG.write(0);
+    doseerServoG.write(doseerServoGhoekPlastic);
     delay(1000);
-    doseerServoG.write(92);
+    doseerServoG.write(doseerServoGhoekMidden);
     delay(1000);
     plastic_aantal--;
+    plastic--;
     if (plastic_aantal == 0)
       ticker = 4; //als er niet meer van deze soort knikkers nodig is wordt de volgende knikker gedaan
     goto knikkerCheck;
   }
   //houten knikkers:
   if (hout_aantal = !0 && ticker == 4) {
-    doseerServoG.write(180);
+    doseerServoG.write(doseerServoGhoekHout);
     delay(1000);
-    doseerServoG.write(92);
+    doseerServoG.write(doseerServoGhoekMidden);
     hout_aantal--;
+    hout--;
     if (hout_aantal == 0)
       ticker = 0; //als er niet meer van deze soort knikkers nodig is wordt de volgende knikker gedaan
     goto knikkerCheck;
