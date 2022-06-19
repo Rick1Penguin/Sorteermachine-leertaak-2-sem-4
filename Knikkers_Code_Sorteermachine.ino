@@ -40,6 +40,10 @@ const uint8_t comPinIn1 = 40; //de pin die wordt gebruikt om te communiceren naa
 const uint8_t comPinIn2 = 41; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
 
 // Alle globale variabele worden hier gedefineerd:
+int glasMax = 5; //het maximaal aantal knikkers wat past in de buffers
+int metaalMax = 5;
+int plasticMax = 5;
+int houtMax = 5;
 int glas = 0; //het aantal knikkers in de buffer
 int metaal = 0;
 int plastic = 0;
@@ -195,6 +199,8 @@ void noodstop(){
 
 //de functie voor het sorteren van de grote knikkers:
 void knikker_Groot() {
+  //if statement om te checken of de buffers niet vol zitten:
+  if(hout <= houtMax && plastic <= plasticMax){
   // wiel draaien naar beginpositie en naar de sensor:
   Serial.println("meten grote knikkers");
   knikkerServoG.write(knikkerServo_Begin);
@@ -263,6 +269,10 @@ void knikker_Groot() {
   Serial.print(greenValue);
   Serial.print(" - Blue = ");
   Serial.println(blueValue);
+  }
+  else{
+    Serial.println("glazen of metalen buffer vol");
+  }
 }
 
 // Function to read Red Pulse Widths bij de grote knikkers
@@ -306,6 +316,8 @@ int getBluePW() {
 
 //de functie voor het sorteren van de kleine knikkers:
 void knikker_Klein() {
+  //if statement om te checken of de buffers niet vol zitten:
+  if(glas <= glasMax && metaal <= metaalMax){
   //Poortje openen en sluiten, om de knikkers te doseren:
   delay(500);
   Serial.println("meten kleine knikkers");
@@ -347,6 +359,10 @@ void knikker_Klein() {
       Serial.println("Geen knikker gesorteerd bij de kleine knikkers");
     }
   }
+  else{
+    Serial.println("glazen of metalen buffer vol");
+  }
+}
 
 // kijken of er genoeg knikkers in de buffers zitten om de bakjes te vullen:
 int check() {
