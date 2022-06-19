@@ -212,15 +212,18 @@ void knikker_Groot() {
   delay(1000);
   
   //kleurensensor uitlezen:
-  delay(100);// Delay to stabilize sensor
-  redPW = getRedPW();  // Read Red value
-  redValue = map(redPW, redMin, redMax, 255, 0);  // Map to value from 0-255
-  delay(100); // Delay to stabilize sensor
-  greenPW = getGreenPW();  // Read Green value
-  greenValue = map(greenPW, greenMin, greenMax, 255, 0);  // Map to value from 0-255
-  delay(100); // Delay to stabilize sensor
-  bluePW = getBluePW();  // Read Blue value
-  blueValue = map(bluePW, blueMin, blueMax, 255, 0);  // Map to value from 0-255
+  do{ 
+    noodstopPlaatsgevonden = 0;
+    delay(100);// Delay to stabilize sensor
+    redPW = getRedPW();  // Read Red value
+    redValue = map(redPW, redMin, redMax, 255, 0);  // Map to value from 0-255
+    delay(100); // Delay to stabilize sensor
+    greenPW = getGreenPW();  // Read Green value
+    greenValue = map(greenPW, greenMin, greenMax, 255, 0);  // Map to value from 0-255
+    delay(100); // Delay to stabilize sensor
+    bluePW = getBluePW();  // Read Blue value
+    blueValue = map(bluePW, blueMin, blueMax, 255, 0);  // Map to value from 0-255
+  }while(noodstopPlaatsgevonden == 1); //loop zodat als tijdens het meten het proces is stilgezet er opnieuw een meting gedaan wordt
 
   // hout knikker:
   if (redValue > Hout_RedLaag && redValue < Hout_RedHoog && greenValue > Hout_GreenLaag && greenValue < Hout_GreenHoog && blueValue > Hout_BlueLaag && blueValue < Hout_BlueHoog) {
