@@ -1,5 +1,5 @@
 //Deze code gaat samen met de code voor het knikkersysteem, de 2 arduinos communiceren met elkaar
-//door 2 pinnen die een PWM signaal krijgen of een Bool signaal
+//door 3 pinnen die een Bool signaal krijgen of geven
 //De codes zijn opgedeeld in 2 arduinos zodat het als 2 losse delen beschouwd kan worden
 //dit is makkelijker met debuggen en problemen oplossen
 //De noodstop werkt tijdens de delays
@@ -40,7 +40,7 @@ const int wachttijdBakje = 8000; // 8 seconden
 
 //Callibratie Ultrasoon sensor:
 const float ultrasoon_BakjeLaag = 6.5; // de lage afstand in cm voor wanneer een bakje met de open kant naar de sensor ligt
-const int ultrasoon_BakjeHoog = 10; // de hoge afstand in cm voor wanneer een bakje met de open kant naar de sensor ligt
+const uint8_t ultrasoon_BakjeHoog = 10; // de hoge afstand in cm voor wanneer een bakje met de open kant naar de sensor ligt
 
 //Callibratie LDR sensor:
 const int LDR_bakjeDoorzichtigLaag = 130;
