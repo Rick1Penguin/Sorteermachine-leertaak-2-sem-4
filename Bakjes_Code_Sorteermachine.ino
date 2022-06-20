@@ -43,19 +43,19 @@ const float ultrasoon_BakjeLaag = 6.5; // de lage afstand in cm voor wanneer een
 const uint8_t ultrasoon_BakjeHoog = 10; // de hoge afstand in cm voor wanneer een bakje met de open kant naar de sensor ligt
 
 //Callibratie LDR sensor:
-const int LDR_bakjeDoorzichtigLaag = 130;
-const int LDR_bakjeDoorzichtigHoog = 200;
+const int LDR_bakjeDoorzichtigLaag = 70;
+const int LDR_bakjeDoorzichtigHoog = 150;
 const int LDR_bakjePVCLaag = 5;
-const int LDR_bakjePVCHoog = 65;
-const int LDR_bakjeAluminiumLaag = 70;
-const int LDR_bakjeAluminiumHoog = 120;
+const int LDR_bakjePVCHoog = 39;
+const int LDR_bakjeAluminiumLaag = 40;
+const int LDR_bakjeAluminiumHoog = 60;
 
 void setup() {
   //De setup:
   Serial.begin(9600); // Serial Communication is starting with 9600 of baudrate speed
 
   //De interupt voor de noodstop:
-  attachInterrupt (digitalPinToInterrupt (noodstopPin), noodstop, LOW); 
+  attachInterrupt (digitalPinToInterrupt (noodstopPin), noodstop, CHANGE); 
   
   //Alle pinmodes worden hier gedefineerd:
   pinMode(trigPin, OUTPUT); // Sets the Pin as an OUTPUT
@@ -82,7 +82,7 @@ void setup() {
   digitalWrite(comPinOut1, LOW);
   digitalWrite(comPinOut2, LOW);
   draaiServo.write(160); //dit is de posietie waarbij het gat bij de trechter zit
-  klepServo1.write(140); //dit is de positie waarbij de klepjes naar beneden staan
+  klepServo1.write(145); //dit is de positie waarbij de klepjes naar beneden staan
   klepServo2.write(20); //dit is de positie waarbij de klepjes naar beneden staan
   
   Serial.println("Setup Complete.");
@@ -95,7 +95,7 @@ void loop() {
   if(IRBandStatus == 0){
     // Als de lichtstroom onderbroken is wordt er gekeken welk bakje het is:
     Serial.println("Er staat een bakje, namelijk:");
-    delay(90);
+    delay(100);
     digitalWrite(bandMotorPin, LOW); //Motor wordt stilgezet op de juiste plek
     delay(1000); // delay om een constante meting te krijgen va de LDR
     LDRWaarde = analogRead(LDRPin); //LDR wordt uitgelezen
@@ -126,8 +126,6 @@ void loop() {
     //Als de lichtstroom niet onderbroken is wordt er doorgegeven dat er geen bakje staat
     digitalWrite(comPinOut1, LOW); //communiceren dat er geen bakje staat
     digitalWrite(comPinOut2, LOW); //communiceren dat er geen bakje staat
-    Serial.print(LDRWaarde);
-    Serial.println("Geen bakje");
     
     //checken of de tijd sinds het bakjes programma langer is geweest dan de wachttijd
     if(millis()- tijdSindsBakje >= wachttijdBakje){
@@ -143,7 +141,7 @@ void loop() {
 void noodstop(){
   //de noodstop functie die vast staat aan een interrupt pin:
   bool noodstopStatus = digitalRead(noodstopPin);
-  if(noodstopStatus == LOW){
+  if(noodstopStatus == HIGH){
     trechterMotorStatus = digitalRead(trechterMotorPin); //status van motoren registreren
     bandMotorStatus = digitalRead(bandMotorPin);
     digitalWrite(trechterMotorPin, LOW); //motoren uitzetten
@@ -151,7 +149,7 @@ void noodstop(){
     noodstopPlaatsgevonden = 1; //variabele om te weten of er in het programma eventueel metingen opnieuw gedaan moeten worden
     Serial.println("Noodstop geactiveerd");
   }
-  while(noodstopStatus == LOW){
+  while(noodstopStatus == HIGH){
     noodstopStatus = digitalRead(noodstopPin); //loop om de arduino te freezen
   }
   if(noodstopPlaatsgevonden == 1){
@@ -177,7 +175,7 @@ void bakjesCode(){
   draaiServo.write(57); //gatpositie
   delay(1000);
   draaiServo.write(160); //beginpositie
-  delay(1000);
+  delay(1500);
 
   digitalWrite(trechterMotorPin, LOW); //vibratie motor op trechter wordt uitgezet
 
@@ -192,18 +190,17 @@ void bakjesCode(){
   
   if (afstand >= ultrasoon_BakjeLaag && afstand <= ultrasoon_BakjeHoog) { 
     //bakje laten zakken met opening naar ultrasoon:
-    klepServo1.write(140);
+    klepServo1.write(145);
     klepServo2.write(92);
-    delay(200);
-    klepServo1.write(140);
+    delay(300);
     klepServo2.write(70);
-    delay(200);
+    delay(300);
     klepServo2.write(60);
-    delay(200);
+    delay(300);
     klepServo2.write(50);
-    delay(200);
+    delay(300);
     klepServo2.write(40);
-    delay(200);
+    delay(300);
     klepServo2.write(30);
     delay(200);
     klepServo2.write(20);
@@ -212,22 +209,22 @@ void bakjesCode(){
     //servo laten zakken met dichte kant naar ultrasoon:
     klepServo1.write(50);
     klepServo2.write(20);
-    delay(200);
+    delay(300);
     klepServo1.write(60);
-    delay(200);
+    delay(300);
     klepServo1.write(70);
-    delay(200);
+    delay(300);
     klepServo1.write(80);
-    delay(200);
+    delay(300);
     klepServo1.write(90);
-    delay(200);
+    delay(300);
     klepServo1.write(100);
-    delay(200);
+    delay(300);
     klepServo1.write(110);
-    delay(200);
+    delay(300);
     klepServo1.write(121);
-    delay(200);
-    klepServo1.write(140);
+    delay(300);
+    klepServo1.write(145);
   }
   delay(500); //een kleine delay zodat de band pas gaat rollen als het bakje daadwerkelijk om de band staat
   tijdSindsBakje = millis(); //omdat er net een bakje opgezet is moet dit geregistreerd worden
