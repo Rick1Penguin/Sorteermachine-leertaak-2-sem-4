@@ -12,18 +12,18 @@ Servo klepServo1; // linker servo vanaf de trechter
 Servo klepServo2; // rechter servo vanaf de trechter
 
 // Alle pinnen worden in variabelen gezet:
-const uint8_t echoPin = 53; //de echopin van de ultrasoon voor de bakjes orientatie
-const uint8_t trigPin = 51; //de trigpin van de ultrasoon voor de bakjes orientatie
-const uint8_t IRPinBand = 43; //de pin van de ir onderbrekingssensor
-const uint8_t bandMotorPin = 31; //de pin die aangesloten staat op de MOSFET van de bandmotor
-const uint8_t trechterMotorPin = 35; //de pin die aangesloten staat op de MOSFET van de trechtermotor
-const uint8_t draaiServoPin = 4; //de pin die is aangesloten op de servo van de draaischijf voor het doseren
-const uint8_t klepServo1Pin = 6; //de pin die is aangesloten op de linker klep
+const uint8_t echoPin = 40; //de echopin van de ultrasoon voor de bakjes orientatie
+const uint8_t trigPin = 44; //de trigpin van de ultrasoon voor de bakjes orientatie
+const uint8_t IRPinBand = 53; //de pin van de ir onderbrekingssensor
+const uint8_t bandMotorPin = 36; //de pin die aangesloten staat op de MOSFET van de bandmotor
+const uint8_t trechterMotorPin = 32; //de pin die aangesloten staat op de MOSFET van de trechtermotor
+const uint8_t draaiServoPin = 12; //de pin die is aangesloten op de servo van de draaischijf voor het doseren
+const uint8_t klepServo1Pin = 9; //de pin die is aangesloten op de linker klep
 const uint8_t klepServo2Pin = 8; //de pin die is aangesloten op de rechter klep
-const uint8_t LDRPin = A15; //de pin die is aangesloten op de LDR
-const uint8_t comPinOut1 = 29; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
-const uint8_t comPinOut2 = 27; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
-const uint8_t comPinIn = 22; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
+const uint8_t LDRPin = A7; //de pin die is aangesloten op de LDR
+const uint8_t comPinOut1 = 27; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
+const uint8_t comPinOut2 = 29; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
+const uint8_t comPinIn = 25; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
 const uint8_t noodstopPin = 2; //de noodstoppin
 
 // Alle globale variabele worden hier gedefineerd:
@@ -43,12 +43,12 @@ const float ultrasoon_BakjeLaag = 6.5; // de lage afstand in cm voor wanneer een
 const uint8_t ultrasoon_BakjeHoog = 10; // de hoge afstand in cm voor wanneer een bakje met de open kant naar de sensor ligt
 
 //Callibratie LDR sensor:
-const int LDR_bakjeDoorzichtigLaag = 70;
-const int LDR_bakjeDoorzichtigHoog = 150;
+const int LDR_bakjeDoorzichtigLaag = 100;
+const int LDR_bakjeDoorzichtigHoog = 160;
 const int LDR_bakjePVCLaag = 5;
 const int LDR_bakjePVCHoog = 39;
 const int LDR_bakjeAluminiumLaag = 40;
-const int LDR_bakjeAluminiumHoog = 60;
+const int LDR_bakjeAluminiumHoog = 80;
 
 void setup() {
   //De setup:
@@ -82,7 +82,7 @@ void setup() {
   digitalWrite(comPinOut1, LOW);
   digitalWrite(comPinOut2, LOW);
   draaiServo.write(160); //dit is de posietie waarbij het gat bij de trechter zit
-  klepServo1.write(145); //dit is de positie waarbij de klepjes naar beneden staan
+  klepServo1.write(165); //dit is de positie waarbij de klepjes naar beneden staan
   klepServo2.write(20); //dit is de positie waarbij de klepjes naar beneden staan
   
   Serial.println("Setup Complete.");
@@ -95,7 +95,7 @@ void loop() {
   if(IRBandStatus == 0){
     // Als de lichtstroom onderbroken is wordt er gekeken welk bakje het is:
     Serial.println("Er staat een bakje, namelijk:");
-    delay(100);
+    delay(80);
     digitalWrite(bandMotorPin, LOW); //Motor wordt stilgezet op de juiste plek
     delay(1000); // delay om een constante meting te krijgen va de LDR
     LDRWaarde = analogRead(LDRPin); //LDR wordt uitgelezen
@@ -163,7 +163,7 @@ void noodstop(){
 void bakjesCode(){
   //de functie van het plaatsen van een bakje op de band:
   digitalWrite(trechterMotorPin, HIGH); //vibratie motor op trechter wordt aangezet
-  klepServo1.write(50); //dit is de positie waarbij het bakje op de klepjes moet landen
+  klepServo1.write(65); //dit is de positie waarbij het bakje op de klepjes moet landen
   klepServo2.write(92); //dit is de positie waarbij het bakje op de klepjes moet landen
   delay(3000);//wachttijd voor trechter
   
@@ -190,7 +190,7 @@ void bakjesCode(){
   
   if (afstand >= ultrasoon_BakjeLaag && afstand <= ultrasoon_BakjeHoog) { 
     //bakje laten zakken met opening naar ultrasoon:
-    klepServo1.write(145);
+    klepServo1.write(165);
     klepServo2.write(92);
     delay(300);
     klepServo2.write(70);
@@ -207,10 +207,8 @@ void bakjesCode(){
   }
   else { 
     //servo laten zakken met dichte kant naar ultrasoon:
-    klepServo1.write(50);
+    klepServo1.write(65);
     klepServo2.write(20);
-    delay(300);
-    klepServo1.write(60);
     delay(300);
     klepServo1.write(70);
     delay(300);
@@ -218,13 +216,15 @@ void bakjesCode(){
     delay(300);
     klepServo1.write(90);
     delay(300);
-    klepServo1.write(100);
+    klepServo1.write(105);
     delay(300);
-    klepServo1.write(110);
+    klepServo1.write(120);
     delay(300);
-    klepServo1.write(121);
+    klepServo1.write(135);
     delay(300);
-    klepServo1.write(145);
+    klepServo1.write(150);
+    delay(300);
+    klepServo1.write(165);
   }
   delay(500); //een kleine delay zodat de band pas gaat rollen als het bakje daadwerkelijk om de band staat
   tijdSindsBakje = millis(); //omdat er net een bakje opgezet is moet dit geregistreerd worden
