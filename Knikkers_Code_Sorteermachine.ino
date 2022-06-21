@@ -16,28 +16,28 @@ Servo stopper_2K; //stop servo 2 voor kleine knikkers
 Servo knikkerServoG; //detectie servo wiel voor Grote knikkers
 
 // Alle pinnen worden in variabelen gezet:
-const uint8_t knikkerServoGPin = 12; //servo pin
-const uint8_t sorteerServoGPin = 10; //servo pin
-const uint8_t doseerServoGPin = 9; //servo pin
+const uint8_t knikkerServoGPin = 8; //servo pin
+const uint8_t sorteerServoGPin = 6; //servo pin
+const uint8_t doseerServoGPin = 7; //servo pin
 
-const uint8_t stopper_1KPin = 8; //servo pin
-const uint8_t stopper_2KPin = 7; //servo pin
-const uint8_t sorteerServoKPin = 6; //servo pin
-const uint8_t doseerServoKPin = 5; //servo pin
+const uint8_t stopper_1KPin = 12; //servo pin
+const uint8_t stopper_2KPin = 11; //servo pin
+const uint8_t sorteerServoKPin = 10; //servo pin
+const uint8_t doseerServoKPin = 9; //servo pin
 const uint8_t knikkerKleinFSRPin = A0; //druksensor pin
-const uint8_t knikkerKleinMetaalPin = 33; //stroommeter pin
+const uint8_t knikkerKleinMetaalPin = 23; //stroommeter pin
 
 const uint8_t noodstopPin = 2; //Noodstop pin
 
-const uint8_t S0 = 30;  //kleurensensor pin
-const uint8_t S1 = 31;  //kleurensensor pin
-const uint8_t S2 = 45;  //kleurensensor pin
-const uint8_t S3 = 44;  //kleurensensor pin
-const uint8_t sensorOut = 47;  //kleurensensor pin
+const uint8_t S0 = 53;  //kleurensensor pin
+const uint8_t S1 = 51;  //kleurensensor pin
+const uint8_t S2 = 41;  //kleurensensor pin
+const uint8_t S3 = 43;  //kleurensensor pin
+const uint8_t sensorOut = 39;  //kleurensensor pin
 
-const uint8_t comPinOut = 39; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
-const uint8_t comPinIn1 = 37; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
-const uint8_t comPinIn2 = 35; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
+const uint8_t comPinOut = 29; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
+const uint8_t comPinIn1 = 31; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
+const uint8_t comPinIn2 = 33; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
 
 // Alle globale variabele worden hier gedefineerd:
 const uint8_t glasMax = 5; //het maximaal aantal knikkers wat past in de buffers
@@ -65,7 +65,7 @@ int blueValue;
 
 //De hoeveelheid knikkers per bakje:
 const int aluminium[4] = {0, 1, 2, 0}; //Glas,Metaal,Plastic,Hout
-const int doorzichtig[4] = {1, 1, 0, 1}; //Glas,Metaal,Plastic,Hout
+const int doorzichtig[4] = {1, 1, 0, 0}; //Glas,Metaal,Plastic,Hout
 const int PVC[4] = {1, 0, 0, 2}; //Glas,Metaal,Plastic,Hout
 
 //Callibratie Grote knikker systeem:
@@ -91,6 +91,7 @@ const int greenMax = 199; // Green maximum value
 const int blueMin = 28; // Blue minimum value
 const int blueMax = 160; // Blue maximum value
 //Servo variables:
+//grote knikkers:
 const uint8_t knikkerServo_Begin = 18;
 const uint8_t knikkerServo_Sensor = 80;
 const uint8_t knikkerServo_Eind = 144;
@@ -98,7 +99,7 @@ const uint8_t sorteerServoGhoekPlastic = 69; //de buffer voor plastic
 const uint8_t sorteerServoGhoekHout = 0; //de buffer voor hout
 const uint8_t doseerServoGhoekHout = 180;
 const uint8_t doseerServoGhoekPlastic = 0;
-const uint8_t doseerServoGhoekMidden = 87;
+const uint8_t doseerServoGhoekMidden = 80;
 
 //Callibratie kleine knikker systeem:
 const uint8_t stopper_1Khoekopen = 105; //de eerste servo
@@ -109,7 +110,7 @@ const uint8_t sorteerServoKhoekGlas = 108; //de buffer voor glazen
 const uint8_t sorteerServoKhoekMetaal = 55; //de buffer voor metalen
 const uint8_t doseerServoKhoekMetaal = 180;
 const uint8_t doseerServoKhoekGlas = 0;
-const uint8_t doseerServoKhoekMidden = 93;
+const uint8_t doseerServoKhoekMidden = 95;
 const uint8_t FSR_grensWaarde = 50; //grenswaarde voor de FSR
 
 
@@ -296,17 +297,11 @@ int getRedPW() {
   digitalWrite(S3, LOW);
   // Define integer to represent Pulse Width
   int PW;
-  int PWgem;
-  int PWtot;
-  int i;
-  for(i= 0; i<100; i++){
+
   // Read the output Pulse Width
   PW = pulseIn(sensorOut, LOW);
-  PWtot = PWtot + PW;
-  }
-  PWgem = PWtot/i;
   // Return the value
-  return PWgem;
+  return PW;
 }
 
 // Function to read Green Pulse Widths bij de grote knikkers
@@ -316,17 +311,11 @@ int getGreenPW() {
   digitalWrite(S3, HIGH);
   // Define integer to represent Pulse Width
   int PW;
-  int PWgem;
-  int PWtot;
-  int i;
-  for(i= 0; i<100; i++){
+
   // Read the output Pulse Width
   PW = pulseIn(sensorOut, LOW);
-  PWtot = PWtot + PW;
-  }
-  PWgem = PWtot/i;
   // Return the value
-  return PWgem;
+  return PW;
 }
 
 // Function to read Blue Pulse Widths bij de grote knikkers
@@ -336,17 +325,11 @@ int getBluePW() {
   digitalWrite(S3, HIGH);
   // Define integer to represent Pulse Width
   int PW;
-  int PWgem;
-  int PWtot;
-  int i;
-  for(i= 0; i<100; i++){
+
   // Read the output Pulse Width
   PW = pulseIn(sensorOut, LOW);
-  PWtot = PWtot + PW;
-  }
-  PWgem = PWtot/i;
   // Return the value
-  return PWgem;
+  return PW;
 }
 
 //de functie voor het sorteren van de kleine knikkers:
@@ -492,6 +475,8 @@ knikkerCheck: //een goto om als er genoeg knikkers per soort gedoseerd zijn opni
     delay(1000);
     doseerServoK.write(doseerServoKhoekMidden);
     delay(1000);
+    doseerServoK.write(doseerServoKhoekMidden+10);
+    delay(1000);
     glas_aantal--;
     glas--;
     goto knikkerCheck;
@@ -506,6 +491,8 @@ knikkerCheck: //een goto om als er genoeg knikkers per soort gedoseerd zijn opni
     delay(1000);
     doseerServoK.write(doseerServoKhoekMidden);
     delay(1000);
+    doseerServoK.write(doseerServoKhoekMidden-10);
+    delay(1000);
     metaal_aantal--;
     metaal--;
     goto knikkerCheck;
@@ -519,6 +506,8 @@ knikkerCheck: //een goto om als er genoeg knikkers per soort gedoseerd zijn opni
     delay(1000);
     doseerServoG.write(doseerServoGhoekMidden);
     delay(1000);
+    doseerServoG.write(doseerServoGhoekMidden+10);
+    delay(1000);
     plastic_aantal--;
     plastic--;
     goto knikkerCheck;
@@ -531,6 +520,8 @@ knikkerCheck: //een goto om als er genoeg knikkers per soort gedoseerd zijn opni
     doseerServoG.write(doseerServoGhoekHout);
     delay(1000);
     doseerServoG.write(doseerServoGhoekMidden);
+    delay(1000);
+    doseerServoG.write(doseerServoGhoekMidden-10);
     delay(1000);
     hout_aantal--;
     hout--;
