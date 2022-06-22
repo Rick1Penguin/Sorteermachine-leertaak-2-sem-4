@@ -41,7 +41,7 @@ const uint8_t sorteerServoGhoekMidden = 40; //de buffer voor midden
 
 void setup() {
   // put your setup code here, to run once:
-
+Serial.begin(9600);
   //Alle pinmodes worden hier gedefineerd:
   pinMode(S0, OUTPUT);
   pinMode(S1, OUTPUT);
@@ -80,17 +80,17 @@ greenValueMax=0;
 blueValueMin=1000;
 blueValueMax=0;
 
-for(int i=0; i<200; i++){
-  
-      delay(100);// Delay to stabilize sensor
+for(int i=0; i<5; i++){
+  Serial.println("meting gedaan");
+      delay(200);// Delay to stabilize sensor
       redPW = getRedPW();  // Read Red value
       redValue = map(redPW, redMin, redMax, 255, 0);  // Map to value from 0-255
       
-      delay(100); // Delay to stabilize sensor
+      delay(200); // Delay to stabilize sensor
       greenPW = getGreenPW();  // Read Green value
       greenValue = map(greenPW, greenMin, greenMax, 255, 0);  // Map to value from 0-255
       
-      delay(100); // Delay to stabilize sensor
+      delay(200); // Delay to stabilize sensor
       bluePW = getBluePW();  // Read Blue value
       blueValue = map(bluePW, blueMin, blueMax, 255, 0);  // Map to value from 0-255
 
@@ -125,6 +125,7 @@ for(int i=0; i<200; i++){
         knikkerServoG.write(hoek); //per stap van 1 graden wordt de servo aangestuurd
         delay(3.7);
       }
+      delay(1000);
         // Print output to Serial Monitor
     Serial.print("RedMin = ");
     Serial.print(redValueMin);
