@@ -25,6 +25,7 @@ const uint8_t comPinOut1 = 27; //de pin die wordt gebruikt om te communiceren na
 const uint8_t comPinOut2 = 29; //de pin die wordt gebruikt om te communiceren naar de andere arduino (out)
 const uint8_t comPinIn = 25; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
 const uint8_t noodstopPin = 2; //de noodstoppin
+const uint8_t metaalPin = 47; //de noodstoppin
 
 // Alle globale variabele worden hier gedefineerd:
 float afstand; // variable for the distance measurement of the ultrasonic sensor
@@ -34,6 +35,7 @@ volatile bool noodstopPlaatsgevonden = 0;
 bool trechterMotorStatus;
 bool bandMotorStatus;
 bool IRBandStatus;
+bool metaalWaarde;
 
 // de wachttijd voot het transporteren van een bakje naar het knikkersysteem:
 const int wachttijdBakje = 8000; // 8 seconden
@@ -44,18 +46,18 @@ const uint8_t ultrasoon_BakjeHoog = 10; // de hoge afstand in cm voor wanneer ee
 
 //Callibratie LDR sensor:
 const int LDR_bakjeDoorzichtigLaag = 100;
-const int LDR_bakjeDoorzichtigHoog = 160;
+const int LDR_bakjeDoorzichtigHoog = 200;
 const int LDR_bakjePVCLaag = 5;
-const int LDR_bakjePVCHoog = 39;
-const int LDR_bakjeAluminiumLaag = 40;
-const int LDR_bakjeAluminiumHoog = 80;
+const int LDR_bakjePVCHoog = 95;
+const int LDR_bakjeAluminiumLaag = 10;
+const int LDR_bakjeAluminiumHoog = 150;
 
 void setup() {
   //De setup:
   Serial.begin(9600); // Serial Communication is starting with 9600 of baudrate speed
 
   //De interupt voor de noodstop:
-  attachInterrupt (digitalPinToInterrupt (noodstopPin), noodstop, CHANGE); 
+  attachInterrupt (digitalPinToInterrupt (noodstopPin), noodstop, HIGH); 
   
   //Alle pinmodes worden hier gedefineerd:
   pinMode(trigPin, OUTPUT); // Sets the Pin as an OUTPUT
@@ -70,6 +72,7 @@ void setup() {
   pinMode(comPinOut1, OUTPUT);
   pinMode(comPinOut2, OUTPUT);
   pinMode(comPinIn, INPUT);
+  pinMode(metaalPin, INPUT); 
 
   //Alle Servos worden verbonden met de juiste pin:
   draaiServo.attach(draaiServoPin);
@@ -82,7 +85,7 @@ void setup() {
   digitalWrite(comPinOut1, LOW);
   digitalWrite(comPinOut2, LOW);
   draaiServo.write(160); //dit is de posietie waarbij het gat bij de trechter zit
-  klepServo1.write(165); //dit is de positie waarbij de klepjes naar beneden staan
+  klepServo1.write(160); //dit is de positie waarbij de klepjes naar beneden staan
   klepServo2.write(20); //dit is de positie waarbij de klepjes naar beneden staan
   
   Serial.println("Setup Complete.");
@@ -99,21 +102,22 @@ void loop() {
     digitalWrite(bandMotorPin, LOW); //Motor wordt stilgezet op de juiste plek
     delay(1000); // delay om een constante meting te krijgen va de LDR
     LDRWaarde = analogRead(LDRPin); //LDR wordt uitgelezen
-  if(LDRWaarde >= LDR_bakjeDoorzichtigLaag && LDRWaarde <= LDR_bakjeDoorzichtigHoog ){
+    metaalWaarde = digitalRead(metaalPin);//kijken of het metaal is
+  if(LDRWaarde >= LDR_bakjeDoorzichtigLaag && LDRWaarde <= LDR_bakjeDoorzichtigHoog && metaalWaarde == LOW){
     digitalWrite(comPinOut1, HIGH); //communiceren dat er een Doorzichtig bakje staat
     digitalWrite(comPinOut2, HIGH); //communiceren dat er een Doorzichtig bakje staat
     Serial.print(LDRWaarde);
     Serial.println("Doorzichtig bakje");
     afvoerBakje(); //doorgestuurd naar de functie waar gekeken wordt of het bakje vol is en afgevoerd wordt
     }
-  else if(LDRWaarde >= LDR_bakjePVCLaag && LDRWaarde <= LDR_bakjePVCHoog ){
+  else if(LDRWaarde >= LDR_bakjePVCLaag && LDRWaarde <= LDR_bakjePVCHoog && metaalWaarde == LOW ){
     digitalWrite(comPinOut1, HIGH); //communiceren dat er een PVC bakje staat
     digitalWrite(comPinOut2, LOW); //communiceren dat er een PVC bakje staat
     Serial.print(LDRWaarde);
     Serial.println("PVC bakje");
     afvoerBakje(); //doorgestuurd naar de functie waar gekeken wordt of het bakje vol is en afgevoerd wordt
     }  
-  else if(LDRWaarde >= LDR_bakjeAluminiumLaag && LDRWaarde <= LDR_bakjeAluminiumHoog ){
+  else if(LDRWaarde >= LDR_bakjeAluminiumLaag && LDRWaarde <= LDR_bakjeAluminiumHoog && metaalWaarde == HIGH ){
     digitalWrite(comPinOut1, LOW); //communiceren dat er een Aluminium bakje staat
     digitalWrite(comPinOut2, HIGH); //communiceren dat er een Aluminium bakje staat
     Serial.print(LDRWaarde);
@@ -126,7 +130,6 @@ void loop() {
     //Als de lichtstroom niet onderbroken is wordt er doorgegeven dat er geen bakje staat
     digitalWrite(comPinOut1, LOW); //communiceren dat er geen bakje staat
     digitalWrite(comPinOut2, LOW); //communiceren dat er geen bakje staat
-    
     //checken of de tijd sinds het bakjes programma langer is geweest dan de wachttijd
     if(millis()- tijdSindsBakje >= wachttijdBakje){
       digitalWrite(bandMotorPin, LOW);
@@ -190,7 +193,7 @@ void bakjesCode(){
   
   if (afstand >= ultrasoon_BakjeLaag && afstand <= ultrasoon_BakjeHoog) { 
     //bakje laten zakken met opening naar ultrasoon:
-    klepServo1.write(165);
+    klepServo1.write(160);
     klepServo2.write(92);
     delay(300);
     klepServo2.write(70);
@@ -224,7 +227,7 @@ void bakjesCode(){
     delay(300);
     klepServo1.write(150);
     delay(300);
-    klepServo1.write(165);
+    klepServo1.write(160);
   }
   delay(500); //een kleine delay zodat de band pas gaat rollen als het bakje daadwerkelijk om de band staat
   tijdSindsBakje = millis(); //omdat er net een bakje opgezet is moet dit geregistreerd worden
@@ -235,8 +238,8 @@ void afvoerBakje(){
   bool bakjeVol;
   do {
    bakjeVol = digitalRead(comPinIn); //com met andere arduino
-   IRBandStatus = digitalRead(IRPinBand); // de IR onderbrekingssensor
-  } while (bakjeVol == LOW && IRBandStatus == LOW); //terwijl de andere arduino aangeeft dat het bakje leeg is en er een bakje voor staat blijven loopen
+   IRBandStatus = digitalRead(IRPinBand); // de IR onderbrekingssensor, voor als het nodig is
+  } while (bakjeVol == LOW ); //terwijl de andere arduino aangeeft dat het bakje leeg is blijven loopen
   digitalWrite(bandMotorPin, HIGH); //transportband aan
   digitalWrite(comPinOut1, LOW); //communiceren dat er geen bakje staat
   digitalWrite(comPinOut2, LOW); //communiceren dat er geen bakje staat
