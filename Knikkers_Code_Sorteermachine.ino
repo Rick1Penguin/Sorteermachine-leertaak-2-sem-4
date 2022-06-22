@@ -40,10 +40,10 @@ const uint8_t comPinIn1 = 31; //de pin die wordt gebruikt om te communiceren naa
 const uint8_t comPinIn2 = 33; //de pin die wordt gebruikt om te communiceren naar de andere arduino (in)
 
 // Alle globale variabele worden hier gedefineerd:
-const uint8_t glasMax = 5; //het maximaal aantal knikkers wat past in de buffers
-const uint8_t metaalMax = 5;
-const uint8_t plasticMax = 5;
-const uint8_t houtMax = 5;
+const uint8_t glasMax = 6; //het maximaal aantal knikkers wat past in de buffers
+const uint8_t metaalMax = 6;
+const uint8_t plasticMax = 6;
+const uint8_t houtMax = 6;
 int glas = 0; //het aantal knikkers in de buffer
 int metaal = 0;
 int plastic = 0;
@@ -64,25 +64,25 @@ int greenValue;
 int blueValue;
 
 //De hoeveelheid knikkers per bakje:
-const int aluminium[4] = {0, 1, 2, 0}; //Glas,Metaal,Plastic,Hout
-const int doorzichtig[4] = {1, 1, 0, 0}; //Glas,Metaal,Plastic,Hout
-const int PVC[4] = {1, 0, 0, 2}; //Glas,Metaal,Plastic,Hout
+const int aluminium[4] = {1, 0, 0, 2}; //Glas,Metaal,Plastic,Hout
+const int doorzichtig[4] = {1, 1, 1, 0}; //Glas,Metaal,Plastic,Hout
+const int PVC[4] = {0, 2, 1, 0}; //Glas,Metaal,Plastic,Hout
 
 //Callibratie Grote knikker systeem:
 //Kleurensensor hout:
-const uint8_t Hout_RedLaag = 0;
-const uint8_t Hout_RedHoog = 65;
-const uint8_t Hout_GreenLaag = 0;
-const uint8_t Hout_GreenHoog = 65;
-const uint8_t Hout_BlueLaag = 0;
-const uint8_t Hout_BlueHoog = 60;
+const uint8_t Hout_RedLaag = 28;
+const uint8_t Hout_RedHoog = 80;
+const uint8_t Hout_GreenLaag = 20;
+const uint8_t Hout_GreenHoog = 90;
+const uint8_t Hout_BlueLaag = 20;
+const uint8_t Hout_BlueHoog = 70;
 //Kleurensensor Plastic:
 const uint8_t Plastic_RedLaag = 100;
-const uint8_t Plastic_RedHoog = 115;
-const uint8_t Plastic_GreenLaag = 115;
-const uint8_t Plastic_GreenHoog = 125;
+const uint8_t Plastic_RedHoog = 130;
+const uint8_t Plastic_GreenLaag = 100;
+const uint8_t Plastic_GreenHoog = 130;
 const uint8_t Plastic_BlueLaag = 100;
-const uint8_t Plastic_BlueHoog = 115;
+const uint8_t Plastic_BlueHoog = 130;
 //Kleurensensor standaard:
 const int redMin = 28; // Red minimum value
 const int redMax = 178; // Red maximum value
@@ -95,11 +95,11 @@ const int blueMax = 160; // Blue maximum value
 const uint8_t knikkerServo_Begin = 18;
 const uint8_t knikkerServo_Sensor = 80;
 const uint8_t knikkerServo_Eind = 144;
-const uint8_t sorteerServoGhoekPlastic = 69; //de buffer voor plastic
-const uint8_t sorteerServoGhoekHout = 0; //de buffer voor hout
+const uint8_t sorteerServoGhoekPlastic = 90; //de buffer voor plastic
+const uint8_t sorteerServoGhoekHout = 20; //de buffer voor hout
 const uint8_t doseerServoGhoekHout = 180;
 const uint8_t doseerServoGhoekPlastic = 0;
-const uint8_t doseerServoGhoekMidden = 80;
+const uint8_t doseerServoGhoekMidden = 90;
 
 //Callibratie kleine knikker systeem:
 const uint8_t stopper_1Khoekopen = 105; //de eerste servo
@@ -110,7 +110,7 @@ const uint8_t sorteerServoKhoekGlas = 108; //de buffer voor glazen
 const uint8_t sorteerServoKhoekMetaal = 55; //de buffer voor metalen
 const uint8_t doseerServoKhoekMetaal = 180;
 const uint8_t doseerServoKhoekGlas = 0;
-const uint8_t doseerServoKhoekMidden = 95;
+const uint8_t doseerServoKhoekMidden = 87;
 const uint8_t FSR_grensWaarde = 50; //grenswaarde voor de FSR
 
 
@@ -119,7 +119,7 @@ void setup() {
   Serial.begin(9600); // Serial Communication is starting with 9600 of baudrate speed
 
   //De interupt voor de noodstop:
-  attachInterrupt (digitalPinToInterrupt (noodstopPin), noodstop, CHANGE);
+  attachInterrupt (digitalPinToInterrupt (noodstopPin), noodstop, HIGH);
 
   //Alle pinmodes worden hier gedefineerd:
   pinMode(S0, OUTPUT);
@@ -218,20 +218,21 @@ void knikker_Groot() {
       knikkerServoG.write(hoek); //per stap van 1 graden wordt de servo aangestuurd
       delay(3.7);
     }
-    delay(1000);
-
+    int x = 0;
+    KleurUitlezen:
+    x = x+1;
     //kleurensensor uitlezen:
     do {
       noodstopPlaatsgevonden = 0;
-      delay(100);// Delay to stabilize sensor
+      delay(1000);// Delay to stabilize sensor
       
       redPW = getRedPW();  // Read Red value
       redValue = map(redPW, redMin, redMax, 255, 0);  // Map to value from 0-255
       
-      delay(100); // Delay to stabilize sensor
+      delay(200); // Delay to stabilize sensor
       greenPW = getGreenPW();  // Read Green value
       greenValue = map(greenPW, greenMin, greenMax, 255, 0);  // Map to value from 0-255
-      delay(100); // Delay to stabilize sensor
+      delay(200); // Delay to stabilize sensor
       bluePW = getBluePW();  // Read Blue value
       blueValue = map(bluePW, blueMin, blueMax, 255, 0);  // Map to value from 0-255
     } while (noodstopPlaatsgevonden == 1); //loop zodat als tijdens het meten het proces is stilgezet er opnieuw een meting gedaan wordt
@@ -253,7 +254,7 @@ void knikker_Groot() {
     }
 
     // plastic knikker:
-    if (redValue > Plastic_RedLaag && redValue < Plastic_RedHoog && greenValue > Plastic_GreenLaag && greenValue < Plastic_GreenHoog && blueValue > Plastic_BlueLaag && blueValue < Plastic_BlueHoog) {
+    else if (redValue > Plastic_RedLaag && redValue < Plastic_RedHoog && greenValue > Plastic_GreenLaag && greenValue < Plastic_GreenHoog && blueValue > Plastic_BlueLaag && blueValue < Plastic_BlueHoog) {
       Serial.println(" plastic bij de grote knikkers");
       sorteerServoG.write(sorteerServoGhoekPlastic); //sturen naar de plastic buffer
       for (int hoek = knikkerServo_Sensor; hoek <= knikkerServo_Eind; hoek++) {
@@ -267,15 +268,19 @@ void knikker_Groot() {
         delay(3.7);
       }
     }
-
     //geen knikker:
     else {
+      if(x<4){ //4 keer de sensor uitlezen, en daarna verder gaan
+        goto KleurUitlezen;
+      }
+      else{
       Serial.println(" geen knikker bij de grote knikkers");
       for (int hoek = knikkerServo_Sensor; hoek >= knikkerServo_Begin; hoek--) {
         knikkerServoG.write(hoek); //per stap van 1 graden wordt de servo aangestuurd
         delay(3.7);
       }
       delay(2000);
+      }
     }
     // Print output to Serial Monitor
     Serial.print("Red = ");
@@ -472,10 +477,10 @@ knikkerCheck: //een goto om als er genoeg knikkers per soort gedoseerd zijn opni
   //glazen knikkers:
   if (glas_aantal != 0 && ticker == 1) {
     doseerServoK.write(doseerServoKhoekGlas);
-    delay(1000);
+    delay(1500);
     doseerServoK.write(doseerServoKhoekMidden);
     delay(1000);
-    doseerServoK.write(doseerServoKhoekMidden+10);
+    doseerServoK.write(doseerServoKhoekMidden+5);
     delay(1000);
     glas_aantal--;
     glas--;
@@ -488,10 +493,10 @@ knikkerCheck: //een goto om als er genoeg knikkers per soort gedoseerd zijn opni
   //metalen knikkers:
   if (metaal_aantal != 0 && ticker == 2) {
     doseerServoK.write(doseerServoKhoekMetaal);
-    delay(1000);
+    delay(1500);
     doseerServoK.write(doseerServoKhoekMidden);
     delay(1000);
-    doseerServoK.write(doseerServoKhoekMidden-10);
+    doseerServoK.write(doseerServoKhoekMidden-5);
     delay(1000);
     metaal_aantal--;
     metaal--;
@@ -503,10 +508,10 @@ knikkerCheck: //een goto om als er genoeg knikkers per soort gedoseerd zijn opni
   //plastic knikkers:
   if (plastic_aantal != 0 && ticker == 3) {
     doseerServoG.write(doseerServoGhoekPlastic);
-    delay(1000);
+    delay(1500);
     doseerServoG.write(doseerServoGhoekMidden);
     delay(1000);
-    doseerServoG.write(doseerServoGhoekMidden+10);
+    doseerServoG.write(doseerServoGhoekMidden+5);
     delay(1000);
     plastic_aantal--;
     plastic--;
@@ -518,10 +523,10 @@ knikkerCheck: //een goto om als er genoeg knikkers per soort gedoseerd zijn opni
   //houten knikkers:
   if (hout_aantal != 0 && ticker == 4) {
     doseerServoG.write(doseerServoGhoekHout);
-    delay(1000);
+    delay(1500);
     doseerServoG.write(doseerServoGhoekMidden);
     delay(1000);
-    doseerServoG.write(doseerServoGhoekMidden-10);
+    doseerServoG.write(doseerServoGhoekMidden-5);
     delay(1000);
     hout_aantal--;
     hout--;
@@ -531,7 +536,7 @@ knikkerCheck: //een goto om als er genoeg knikkers per soort gedoseerd zijn opni
     if (hout_aantal == 0){
       ticker = 0; //als er niet meer van deze soort knikkers nodig is wordt de volgende knikker gedaan
    }
-  delay(1500); //delay om de knikker genoeg tijd te geven om naar het bakje te rollen
+  delay(2500); //delay om de knikker genoeg tijd te geven om naar het bakje te rollen
   digitalWrite(comPinOut, HIGH); //communiceren met andere arduino dat het bakje vol is
   Serial.println("Bakje gevuld");
 }
